@@ -1,0 +1,58 @@
+<div class="row gy-2">
+  <div class="col-12 col-md-6">
+    <div class="d-inline-block me-2">
+      <ngb-pagination
+        [boundaryLinks]="boundaryLinks"
+        [collectionSize]="collectionSize"
+        [directionLinks]="directionLinks"
+        [disabled]="disabled"
+        [ellipses]="ellipses"
+        [maxSize]="maxSize"
+        [(page)]="page"
+        [pageSize]="pageSize"
+        [rotate]="rotate"
+        [size]="size"
+        (pageChange)="pageChange.emit($event)"
+      >
+        <ng-template ngbPaginationPrevious>
+          <i class="bi bi-chevron-left"></i>
+        </ng-template>
+        <ng-template ngbPaginationNext>
+          <i class="bi bi-chevron-right"></i>
+        </ng-template>
+        <ng-template ngbPaginationFirst>
+          <i class="bi bi-chevron-double-left"></i>
+        </ng-template>
+        <ng-template ngbPaginationLast>
+          <i class="bi bi-chevron-double-right"></i>
+        </ng-template>
+      </ngb-pagination>
+    </div>
+    @if (showTotalRows) {
+    <div
+      [class.text-muted]="disabled"
+      class="d-inline-block p-2 rounded bg-light"
+    >
+      {{ "REPORT.TOTAL_ROWS" | translate }}: {{ collectionSize }}
+    </div>
+    }
+  </div>
+
+  @if (showPageSize) {
+  <div class="col-12 col-md-6">
+    <div class="d-flex justify-content-end">
+      <select
+        class="form-select form-select-sm form-select-solid w-auto"
+        (change)="pageSizeChange.emit(+$any($event.target).value)"
+        [formControl]="pageSizeControl"
+      >
+        <option [value]="20">20</option>
+        <option [value]="30">30</option>
+        <option [value]="40">40</option>
+        <option [value]="50">50</option>
+        <option [value]="100">100</option>
+      </select>
+    </div>
+  </div>
+  }
+</div>

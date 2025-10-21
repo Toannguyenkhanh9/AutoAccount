@@ -1,0 +1,144 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Creditor Statement Report</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="inquiry()">Inquiry</button>
+      <button class="btn ghost" (click)="openPreview()">Preview</button>
+      <button class="btn ghost" (click)="print()">Print</button>
+      <button class="btn ghost" (click)="showOptions = !showOptions">
+        {{ showOptions ? 'Hide Options' : 'Show Options' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="card options" *ngIf="showOptions">
+    <form [formGroup]="filters" class="grid4">
+      <label>
+        <span>From date</span>
+        <input type="date" formControlName="dateFrom">
+      </label>
+      <label>
+        <span>To date</span>
+        <input type="date" formControlName="dateTo">
+      </label>
+      <label>
+        <span>Search creditor</span>
+        <input type="text" placeholder="Code / name / agent / area…" formControlName="search">
+      </label>
+      <label>
+        <span>Sort by</span>
+        <select formControlName="sortBy">
+          <option value="code">Creditor Code</option>
+          <option value="name">Company Name</option>
+          <option value="agent">Agent</option>
+        </select>
+      </label>
+      <label>
+        <span>Group by</span>
+        <select formControlName="groupBy">
+          <option value="none">None</option>
+          <option value="agent">Agent</option>
+          <option value="area">Area</option>
+        </select>
+      </label>
+      <label class="chk">
+        <input type="checkbox" formControlName="showCriteria">
+        <span>Show criteria in report</span>
+      </label>
+      <div class="right">
+        <button class="btn" type="button" (click)="inquiry()">Apply</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:140px">Creditor Code</th>
+          <th>Company Name</th>
+          <th style="width:100px">Agent</th>
+          <th style="width:110px">Area</th>
+          <th class="right" style="width:130px">Opening</th>
+          <th class="right" style="width:130px">Debit</th>
+          <th class="right" style="width:130px">Credit</th>
+          <th class="right" style="width:130px">Closing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filteredSummaries()" (click)="openPreview(r)" class="data-row">
+          <td>{{ r.code }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.agent }}</td>
+          <td>{{ r.area }}</td>
+          <td class="num">{{ r.opening | number:'1.2-2' }}</td>
+          <td class="num">{{ r.debit   | number:'1.2-2' }}</td>
+          <td class="num">{{ r.credit  | number:'1.2-2' }}</td>
+          <td class="num"><b>{{ r.closing | number:'1.2-2' }}</b></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Preview -->
+  <div class="print-overlay" *ngIf="showPreview">
+    <div class="print-sheet">
+      <div class="sheet-head">
+        <div>
+          <div class="sheet-title">Creditor Statement</div>
+          <div class="criteria" *ngIf="filters.value.showCriteria">
+            Period: {{ filters.value.dateFrom }} — {{ filters.value.dateTo }}
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <select class="switcher"
+                  [ngModel]="selectedCode()"
+                  (ngModelChange)="selectedCode.set($event)">
+            <option *ngFor="let s of filteredSummaries()" [ngValue]="s.code">
+              {{ s.code }} — {{ s.name }}
+            </option>
+          </select>
+          <button class="btn ghost" (click)="print()">Print</button>
+          <button class="btn" (click)="closePreview()">Close</button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="statementLines(selectedCode()) as st">
+        <div class="sheet-meta">
+          <div><b>Creditor:</b> {{ st.creditor.code }} — {{ st.creditor.name }}</div>
+          <div><b>Agent:</b> {{ st.creditor.agent }} &nbsp; <b>Area:</b> {{ st.creditor.area }}</div>
+          <div><b>Opening Balance:</b> {{ st.opening | number:'1.2-2' }}</div>
+        </div>
+
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th style="width:110px">Date</th>
+              <th style="width:130px">Doc No</th>
+              <th>Description</th>
+              <th class="right" style="width:130px">Debit</th>
+              <th class="right" style="width:130px">Credit</th>
+              <th class="right" style="width:140px">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of st.lines">
+              <td>{{ l.date }}</td>
+              <td>{{ l.docNo }}</td>
+              <td>{{ l.description }}</td>
+              <td class="num">{{ l.debit  | number:'1.2-2' }}</td>
+              <td class="num">{{ l.credit | number:'1.2-2' }}</td>
+              <td class="num"><b>{{ l.balance | number:'1.2-2' }}</b></td>
+            </tr>
+            <tr class="sub">
+              <td colspan="3" class="right"><b>Closing Balance</b></td>
+              <td class="num"><b>{{ sumDebit(st.lines)  | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ sumCredit(st.lines) | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ st.closing | number:'1.2-2' }}</b></td>
+            </tr>
+          </tbody>
+        </table>
+      </ng-container>
+    </div>
+  </div>
+</div>

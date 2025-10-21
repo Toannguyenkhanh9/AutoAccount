@@ -1,0 +1,147 @@
+<div class="page">
+  <!-- Header -->
+  <div class="titlebar">
+   <h1>Journal Entry</h1>
+
+    <div class="toolbar">
+      <input class="search" [(ngModel)]="q" placeholder="Search doc no / type / reference…" />
+      <button class="btn" (click)="onNew()">New</button>
+      <button class="btn" [disabled]="!selected" (click)="onEdit()">Edit</button>
+      <button class="btn danger" [disabled]="!selected" (click)="onDelete()">Delete</button>
+      <button class="btn" (click)="onRefresh()">Refresh</button>
+      <button class="btn" (click)="onPrint()">Print</button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="gridwrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px">Doc No</th>
+          <th style="width:120px">Doc Date</th>
+          <th style="width:130px">Type</th>
+          <th>Reference</th>
+          <th class="text-end" style="width:140px">Debits</th>
+          <th class="text-end" style="width:140px">Credits</th>
+          <th class="text-end" style="width:140px">Diff</th>
+          <th class="text-center" style="width:110px">Posted</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered(); trackBy: trackById"
+            (click)="pick(r)"
+            [class.active]="isPicked(r)">
+          <td class="monospace">{{ r.docNo }}</td>
+          <td>{{ r.docDate }}</td>
+          <td>
+            <span class="pill">{{ r.journalType }}</span>
+          </td>
+          <td class="cut">{{ r.reference }}</td>
+          <td class="text-end">{{ sumDebits(r) | number:'1.2-2' }}</td>
+          <td class="text-end">{{ sumCredits(r) | number:'1.2-2' }}</td>
+          <td class="text-end" [class.neg]="diff(r) !== 0">{{ diff(r) | number:'1.2-2' }}</td>
+          <td class="text-center">
+            <span class="pill" [class.ok]="r.posted==='Yes'" [class.bad]="r.posted==='No'">{{ r.posted }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">Records: {{ filtered().length }}</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-layer" *ngIf="showModal">
+  <div class="modal-panel" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">{{ isEdit ? 'Edit Journal Entry' : 'New Journal Entry' }}</div>
+      <button class="x" (click)="close()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Header form -->
+      <div class="form-head">
+        <label>Document No</label>
+        <input class="inp" [(ngModel)]="form.docNo" placeholder="e.g. JV-202408-0003" />
+
+        <label>Document Date</label>
+        <input class="inp" type="date" [(ngModel)]="form.docDate" />
+
+        <label>Journal Type</label>
+        <select class="inp" [(ngModel)]="form.journalType">
+          <option *ngFor="let j of journalTypes" [value]="j.code">{{ j.code }} — {{ j.name }}</option>
+        </select>
+
+        <label>Reference</label>
+        <input class="inp" [(ngModel)]="form.reference" placeholder="Optional" />
+
+        <label>Remark</label>
+        <input class="inp" [(ngModel)]="form.remark" placeholder="Optional" />
+      </div>
+
+      <!-- Lines -->
+      <div class="lines card">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th style="width:180px">Account</th>
+              <th>Account Name</th>
+              <th>Description</th>
+              <th class="text-end" style="width:140px">Debit</th>
+              <th class="text-end" style="width:140px">Credit</th>
+              <th class="text-center" style="width:90px">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of form.lines; let i = index">
+              <td>
+                <select class="inp" [(ngModel)]="l.accountCode" (change)="onAccountChange(i)">
+                  <option value="">-- Select --</option>
+                  <option *ngFor="let a of accounts" [value]="a.code">{{ a.code }}</option>
+                </select>
+              </td>
+              <td class="mono">{{ l.accountName }}</td>
+              <td><input class="inp" [(ngModel)]="l.description" placeholder="Optional" /></td>
+              <td class="text-end">
+                <input class="inp num" type="number" step="0.01" [(ngModel)]="l.debit" (input)="normalizeLine(i)" />
+              </td>
+              <td class="text-end">
+                <input class="inp num" type="number" step="0.01" [(ngModel)]="l.credit" (input)="normalizeLine(i)" />
+              </td>
+              <td class="text-center">
+                <button class="btn danger" (click)="removeLine(i)">Del</button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-end"><b>Totals</b></td>
+              <td class="text-end"><b>{{ formDebits() | number:'1.2-2' }}</b></td>
+              <td class="text-end"><b>{{ formCredits() | number:'1.2-2' }}</b></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="text-end">Difference (Dr - Cr)</td>
+              <td colspan="2" class="text-end" [class.neg]="!formBalanced()"><b>{{ (formDebits() - formCredits()) | number:'1.2-2' }}</b></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="line-actions">
+          <button class="btn" (click)="addLine()">Add line</button>
+          <span class="status" [class.ok]="formBalanced()" [class.bad]="!formBalanced()">
+            {{ formBalanced() ? 'Balanced' : 'Out of balance' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn ghost" (click)="close()">Cancel</button>
+      <button class="btn primary" [disabled]="!formBalanced()" (click)="save()">Save</button>
+    </div>
+  </div>
+</div>

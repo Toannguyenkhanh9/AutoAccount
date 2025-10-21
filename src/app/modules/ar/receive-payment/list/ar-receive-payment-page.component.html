@@ -1,0 +1,332 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>A/R Receive Payment</h1>
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn btn-primary" (click)="newPayment()"><span class="ico plus"></span> New</button>
+        <button class="btn" [disabled]="!selected" (click)="editPayment()"><span class="ico edit"></span> Edit</button>
+        <button class="btn" [disabled]="!selected" (click)="viewPayment()"><span class="ico eye"></span> View</button>
+        <button class="btn btn-danger" [disabled]="!selected" (click)="deletePayment()"><span class="ico trash"></span> Delete</button>
+      </div>
+      <div class="group">
+        <button class="btn btn-ghost" (click)="refresh()"><span class="ico refresh"></span> Refresh</button>
+        <button class="btn" (click)="openFind()"><span class="ico search"></span> Find</button>
+      </div>
+      <div class="group">
+        <button class="btn" (click)="openPrint()"><span class="ico print"></span> Print Listing</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter">
+    <input [(ngModel)]="q" placeholder="Search receipt no, debtor, reference…">
+    <div class="meta">Records: {{ filtered.length }}</div>
+  </div>
+
+  <div class="gridwrap">
+    <table>
+      <thead>
+        <tr>
+          <th (click)="setSort('receiptDate')">Date</th>
+          <th (click)="setSort('receiptNo')">Receipt No</th>
+          <th (click)="setSort('debtor')">Debtor</th>
+          <th (click)="setSort('method')">Method</th>
+          <th>Reference</th>
+          <th class="r">Amount</th>
+          <th class="r">Allocated</th>
+          <th class="r">Unallocated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of paged" (click)="selectRow(p)" [class.selected]="selected===p">
+          <td>{{ p.receiptDate }}</td>
+          <td>{{ p.receiptNo }}</td>
+          <td>{{ p.debtor }} — {{ p.debtorName }}</td>
+          <td>{{ p.method }}</td>
+          <td>{{ p.reference || '-' }}</td>
+          <td class="r">{{ p.amountReceived | number:'1.2-2' }}</td>
+          <td class="r">{{ p.allocated | number:'1.2-2' }}</td>
+          <td class="r">{{ p.unallocated | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Record {{ (page-1)*pageSize + (paged.length?1:0) }} of {{ filtered.length }}</span>
+    <div class="nav">
+      <button class="pg" (click)="goFirst()">&laquo;</button>
+      <button class="pg" (click)="goPrev()">&lsaquo;</button>
+      <span class="pginfo">Page {{ page }} / {{ totalPages }}</span>
+      <button class="pg" (click)="goNext()">&rsaquo;</button>
+      <button class="pg" (click)="goLast()">&raquo;</button>
+    </div>
+  </div>
+
+  <!-- ============= FORM MODAL ============= -->
+  <div class="dialog" *ngIf="showForm">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        {{ formMode==='new' ? 'New Receive Payment' : formMode==='edit' ? 'Edit Receive Payment' : 'View Receive Payment' }}
+        <button class="x" (click)="showForm=false">✕</button>
+      </div>
+
+      <!-- CHÚ Ý: body cuộn được, header/foot cố định -->
+      <div class="dialog-body">
+        <form [formGroup]="payForm" class="hdr">
+          <div class="row">
+            <label>Receipt No <input formControlName="receiptNo" [readonly]="formMode!=='new'"></label>
+            <label>Date <input type="date" formControlName="receiptDate" [readonly]="formMode==='view'"></label>
+            <label>Debtor
+              <select formControlName="debtor" (change)="onDebtorChanged()" [disabled]="formMode==='view'">
+                <option value="" disabled>Select…</option>
+                <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+              </select>
+            </label>
+            <label>Debtor Name <input formControlName="debtorName" readonly></label>
+
+            <label>Method
+              <select formControlName="method" (change)="onHeaderChanged()" [disabled]="formMode==='view'">
+                <option>Cash</option><option>Bank</option><option>Cheque</option>
+              </select>
+            </label>
+            <label>Reference / Cheque No <input formControlName="reference" [readonly]="formMode==='view'"></label>
+            <label>Currency
+              <select formControlName="currency" [disabled]="formMode==='view'">
+                <option>MYR</option><option>USD</option><option>SGD</option>
+              </select>
+            </label>
+            <label>Amount Received <input type="number" step="0.01" formControlName="amountReceived" (input)="onHeaderChanged()" [readonly]="formMode==='view'"></label>
+            <label>Bank Charges <input type="number" step="0.01" formControlName="charges" (input)="onHeaderChanged()" [readonly]="formMode==='view'"></label>
+
+            <label class="wide">Narration <input formControlName="narration" [readonly]="formMode==='view'"></label>
+            <label>Status
+              <select formControlName="status" [disabled]="formMode==='view'">
+                <option>POSTED</option><option>VOID</option>
+              </select>
+            </label>
+            <label>Allocated <input formControlName="allocated" readonly></label>
+            <label>Unallocated <input formControlName="unallocated" readonly></label>
+          </div>
+        </form>
+
+        <!-- Open invoices -->
+        <div class="openpane" *ngIf="payForm.get('debtor')!.value">
+          <div class="openhead">
+            <div class="title">Open Invoices</div>
+            <div class="actions">
+              <button class="btn" (click)="autoLoadAll()" [disabled]="formMode==='view'"><span class="ico plus"></span> Load all</button>
+              <button class="btn" (click)="autoAllocate()" [disabled]="formMode==='view'"><span class="ico plus"></span> Auto allocate</button>
+              <button class="btn btn-ghost" (click)="clearAllocations()" [disabled]="formMode==='view'">Clear allocations</button>
+            </div>
+          </div>
+          <div class="tablewrap limit">
+            <table>
+              <thead>
+                <tr><th>Doc No</th><th>Date</th><th>Description</th><th class="r">Outstanding</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let inv of (openByDebtor[payForm.get('debtor')!.value] || [])">
+                  <td>{{ inv.docNo }}</td>
+                  <td>{{ inv.docDate }}</td>
+                  <td>{{ inv.description }}</td>
+                  <td class="r">{{ inv.outstanding | number:'1.2-2' }}</td>
+                  <td class="c"><button class="btn" (click)="addFromOpen(inv)" [disabled]="formMode==='view'"><span class="ico plus"></span></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Allocation lines -->
+        <div class="lines">
+          <div class="lines-head">
+            <div class="title">Allocation</div>
+          </div>
+
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice</th><th>Date</th><th>Description</th>
+                  <th class="r">Outstanding</th><th class="r">Allocate</th><th class="r">Outstanding After</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let fg of linesFA.controls; let i = index" [formGroup]="fg">
+                  <td><input formControlName="invoiceNo" readonly></td>
+                  <td><input formControlName="invoiceDate" readonly></td>
+                  <td><input formControlName="description" readonly></td>
+                  <td class="r"><input formControlName="outstandingBefore" readonly></td>
+                  <td class="r"><input type="number" step="0.01" formControlName="allocate" (input)="onLineChanged(i)" [readonly]="formMode==='view'"></td>
+                  <td class="r"><input formControlName="outstandingAfter" readonly></td>
+                  <td class="c"><button class="btn btn-danger" (click)="removeLine(i)" [disabled]="formMode==='view'"><span class="ico trash"></span></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals">
+            <div class="row"><span>Allocated</span><strong>{{ payForm.get('allocated')?.value | number:'1.2-2' }}</strong></div>
+            <div class="row"><span>Unallocated</span><strong [class.warn]="payForm.get('unallocated')?.value<0">{{ payForm.get('unallocated')?.value | number:'1.2-2' }}</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" (click)="showForm=false">Close</button>
+        <button *ngIf="formMode!=='view'" class="btn primary" (click)="savePayment()">Save</button>
+        <button *ngIf="formMode==='view'" class="btn primary" (click)="openOR()"><span class="ico print"></span> Official Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Find dialog -->
+  <div class="dialog" *ngIf="showFind">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        Find Receive Payment
+        <button class="x" (click)="showFind=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="findForm" class="grid3">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Debtor
+            <select formControlName="debtor">
+              <option value="">Any</option>
+              <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+            </select>
+          </label>
+          <label>Method
+            <select formControlName="method">
+              <option value="">Any</option>
+              <option>Cash</option><option>Bank</option><option>Cheque</option>
+            </select>
+          </label>
+          <label>Min Amount <input type="number" step="0.01" formControlName="min"></label>
+          <label>Max Amount <input type="number" step="0.01" formControlName="max"></label>
+        </form>
+
+        <div class="dialog-actions">
+          <button class="btn primary" (click)="runFind()">Search</button>
+        </div>
+
+        <table *ngIf="findResults.length">
+          <thead><tr><th>Date</th><th>Receipt No</th><th>Debtor</th><th>Method</th><th class="r">Amount</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of findResults">
+              <td>{{ r.receiptDate }}</td><td>{{ r.receiptNo }}</td>
+              <td>{{ r.debtor }} — {{ r.debtorName }}</td>
+              <td>{{ r.method }}</td>
+              <td class="r">{{ r.amountReceived | number:'1.2-2' }}</td>
+              <td><button class="btn btn-primary" (click)="pickFromFind(r)">Select</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Listing -->
+  <div class="dialog" *ngIf="showPrint">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        A/R Receive Payment Listing
+        <button class="x" (click)="showPrint=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="printForm" class="grid4">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Debtor
+            <select formControlName="debtor">
+              <option value="">Any</option>
+              <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+            </select>
+          </label>
+          <label>Method
+            <select formControlName="method">
+              <option value="">Any</option>
+              <option>Cash</option><option>Bank</option><option>Cheque</option>
+            </select>
+          </label>
+          <label>Sort by
+            <select formControlName="sort">
+              <option value="receiptDate">Date</option>
+              <option value="receiptNo">Receipt No</option>
+              <option value="debtor">Debtor</option>
+              <option value="amountReceived">Amount</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="dialog-actions">
+          <button class="btn primary" (click)="showPreview=true">Preview</button>
+        </div>
+
+        <div class="preview" *ngIf="showPreview">
+          <h3>A/R Receive Payment Listing (Preview)</h3>
+          <table>
+            <thead><tr><th>Date</th><th>Receipt No</th><th>Debtor</th><th>Method</th><th class="r">Amount</th><th class="r">Allocated</th><th class="r">Unallocated</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let p of buildListing()">
+                <td>{{ p.receiptDate }}</td>
+                <td>{{ p.receiptNo }}</td>
+                <td>{{ p.debtor }} — {{ p.debtorName }}</td>
+                <td>{{ p.method }}</td>
+                <td class="r">{{ p.amountReceived | number:'1.2-2' }}</td>
+                <td class="r">{{ p.allocated | number:'1.2-2' }}</td>
+                <td class="r">{{ p.unallocated | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Official Receipt Preview -->
+  <div class="dialog" *ngIf="showOR">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        Official Receipt (Preview)
+        <button class="x" (click)="closeOR()">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="receipt">
+          <div class="row"><strong>Received From</strong><span>{{ payForm.get('debtorName')?.value }}</span></div>
+          <div class="row"><strong>Debtor Code</strong><span>{{ payForm.get('debtor')?.value }}</span></div>
+          <div class="row"><strong>Receipt No</strong><span>{{ payForm.get('receiptNo')?.value }}</span></div>
+          <div class="row"><strong>Date</strong><span>{{ payForm.get('receiptDate')?.value }}</span></div>
+          <div class="row"><strong>Method</strong><span>{{ payForm.get('method')?.value }} {{ payForm.get('reference')?.value ? ('(' + payForm.get('reference')?.value + ')'):'' }}</span></div>
+          <hr>
+          <table>
+            <thead><tr><th>Invoice</th><th>Date</th><th>Description</th><th class="r">Allocated</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let fg of linesFA.controls" [formGroup]="fg">
+                <td>{{ fg.get('invoiceNo')?.value }}</td>
+                <td>{{ fg.get('invoiceDate')?.value }}</td>
+                <td>{{ fg.get('description')?.value }}</td>
+                <td class="r">{{ fg.get('allocate')?.value | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tot">
+            <div><span>Amount Received</span><strong>{{ payForm.get('amountReceived')?.value | number:'1.2-2' }}</strong></div>
+            <div><span>Bank Charges</span><strong>{{ payForm.get('charges')?.value | number:'1.2-2' }}</strong></div>
+            <div><span>Allocated</span><strong>{{ payForm.get('allocated')?.value | number:'1.2-2' }}</strong></div>
+            <div class="grand"><span>Unallocated</span><strong>{{ payForm.get('unallocated')?.value | number:'1.2-2' }}</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" (click)="closeOR()">Close</button>
+        <button class="btn primary" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+
+</div>

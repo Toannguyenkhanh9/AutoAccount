@@ -1,0 +1,185 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Outstanding A/P Invoice Report</h1>
+    <div class="toolbar">
+      <button class="pill" (click)="inquiry()">Inquiry</button>
+      <button class="pill" (click)="preview()">Preview</button>
+      <button class="pill" (click)="preview(); doPrint()">Print</button>
+      <button class="pill" (click)="toggleOptions()">
+        {{ showOptions ? 'Hide Options' : 'Show Options' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="gridwrap">
+
+    <!-- Options -->
+    <div class="options" *ngIf="showOptions">
+      <form [formGroup]="filters" class="opt-grid">
+        <div>
+          <label>Date From</label>
+          <input type="date" formControlName="start">
+        </div>
+        <div>
+          <label>Date To</label>
+          <input type="date" formControlName="end">
+        </div>
+        <div>
+          <label>Creditor</label>
+          <input type="text" placeholder="code / name" formControlName="creditor">
+        </div>
+        <div>
+          <label>Due Type</label>
+          <select formControlName="docType">
+            <option>All</option>
+            <option>Invoice</option>
+            <option>Debit Note</option>
+          </select>
+        </div>
+        <div>
+          <label>Sort By</label>
+          <select formControlName="sort">
+            <option>Doc No</option>
+            <option>Doc Date</option>
+            <option>Creditor Code</option>
+            <option>Company Name</option>
+            <option>Purchase Agent</option>
+          </select>
+        </div>
+        <div>
+          <label>Group By</label>
+          <select formControlName="groupBy">
+            <option>None</option>
+            <option>Creditor Code</option>
+            <option>Purchase Agent</option>
+          </select>
+        </div>
+        <div class="full checkbox">
+          <label><input type="checkbox" formControlName="showCriteria"> Show Criteria in Report</label>
+        </div>
+      </form>
+    </div>
+
+    <!-- Result -->
+    <div class="result">
+      <table class="list">
+        <thead>
+        <tr>
+          <th style="min-width:160px;">Creditor Code</th>
+          <th>Company Name</th>
+          <th>Doc No</th>
+          <th>Doc Date</th>
+          <th>Due Date</th>
+          <th>Curr</th>
+          <th class="text-end">Rate</th>
+          <th class="text-end">Age</th>
+          <th class="text-end">Amount</th>
+          <th class="text-end">Local Amount</th>
+          <th class="text-end">Outstanding</th>
+          <th class="text-end">Local Outstanding</th>
+        </tr>
+        </thead>
+
+        <tbody *ngFor="let g of groups">
+          <tr class="group-row" *ngIf="filters.value.groupBy !== 'None'">
+            <td colspan="12"><b>{{ g.key }}</b></td>
+          </tr>
+
+          <tr *ngFor="let r of g.rows">
+            <td>{{ r.creditorCode }}</td>
+            <td>{{ r.creditorName }}</td>
+            <td>{{ r.docNo }}</td>
+            <td>{{ r.docDate }}</td>
+            <td>{{ r.dueDate }}</td>
+            <td>{{ r.currency }}</td>
+            <td class="text-end">{{ r.rate | number:'1.2-4' }}</td>
+            <td class="text-end">{{ r.age }}</td>
+            <td class="text-end">{{ r.amount | number:'1.2-2' }}</td>
+            <td class="text-end">{{ r.localAmount | number:'1.2-2' }}</td>
+            <td class="text-end">{{ r.outstanding | number:'1.2-2' }}</td>
+            <td class="text-end">{{ r.localOutstanding | number:'1.2-2' }}</td>
+          </tr>
+
+          <tr class="subtotal" *ngIf="filters.value.groupBy !== 'None'">
+            <td colspan="9" class="text-end">Subtotal</td>
+            <td class="text-end"><b>{{ g.subLocalAmount | number:'1.2-2' }}</b></td>
+            <td></td>
+            <td class="text-end"><b>{{ g.subLocalOutstanding | number:'1.2-2' }}</b></td>
+          </tr>
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <td colspan="9" class="text-end">Total</td>
+            <td class="text-end"><b>{{ totalLocalAmount | number:'1.2-2' }}</b></td>
+            <td></td>
+            <td class="text-end"><b>{{ totalLocalOutstanding | number:'1.2-2' }}</b></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Preview / Print -->
+<div class="print-overlay" *ngIf="showPrint" (click)="closePreview()">
+  <div class="print-sheet" (click)="$event.stopPropagation()">
+    <div class="print-toolbar">
+      <button class="btn" (click)="closePreview()">Close</button>
+      <button class="btn primary" (click)="doPrint()">Official Print</button>
+    </div>
+
+    <h2>Outstanding A/P Invoice Report</h2>
+    <div class="criteria" *ngIf="filters.value.showCriteria">
+      Period: {{filters.value.start}} → {{filters.value.end}}
+      &nbsp;|&nbsp; Type: {{filters.value.docType}}
+      &nbsp;|&nbsp; Group: {{filters.value.groupBy}} | Sort: {{filters.value.sort}}
+    </div>
+
+    <table class="list print">
+      <thead>
+      <tr>
+        <th>Creditor Code</th><th>Company Name</th><th>Doc No</th><th>Doc Date</th><th>Due Date</th>
+        <th>Curr</th><th class="text-end">Rate</th><th class="text-end">Age</th>
+        <th class="text-end">Amount</th><th class="text-end">Local Amount</th>
+        <th class="text-end">Outstanding</th><th class="text-end">Local Outstanding</th>
+      </tr>
+      </thead>
+
+      <tbody *ngFor="let g of groups">
+        <tr class="group-row" *ngIf="filters.value.groupBy !== 'None'">
+          <td colspan="12"><b>{{ g.key }}</b></td>
+        </tr>
+        <tr *ngFor="let r of g.rows">
+          <td>{{ r.creditorCode }}</td>
+          <td>{{ r.creditorName }}</td>
+          <td>{{ r.docNo }}</td>
+          <td>{{ r.docDate }}</td>
+          <td>{{ r.dueDate }}</td>
+          <td>{{ r.currency }}</td>
+          <td class="text-end">{{ r.rate | number:'1.2-4' }}</td>
+          <td class="text-end">{{ r.age }}</td>
+          <td class="text-end">{{ r.amount | number:'1.2-2' }}</td>
+          <td class="text-end">{{ r.localAmount | number:'1.2-2' }}</td>
+          <td class="text-end">{{ r.outstanding | number:'1.2-2' }}</td>
+          <td class="text-end">{{ r.localOutstanding | number:'1.2-2' }}</td>
+        </tr>
+        <tr class="subtotal" *ngIf="filters.value.groupBy !== 'None'">
+          <td colspan="9" class="text-end">Subtotal</td>
+          <td class="text-end"><b>{{ g.subLocalAmount | number:'1.2-2' }}</b></td>
+          <td></td>
+          <td class="text-end"><b>{{ g.subLocalOutstanding | number:'1.2-2' }}</b></td>
+        </tr>
+      </tbody>
+
+      <tfoot>
+      <tr>
+        <td colspan="9" class="text-end">Total</td>
+        <td class="text-end"><b>{{ totalLocalAmount | number:'1.2-2' }}</b></td>
+        <td></td>
+        <td class="text-end"><b>{{ totalLocalOutstanding | number:'1.2-2' }}</b></td>
+      </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>

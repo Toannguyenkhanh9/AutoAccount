@@ -1,0 +1,200 @@
+/* ================= Account Maintenance (namespaced) ================== */
+.acct-page {
+  --head-from: #e1f5df;
+  --head-to: #c0e7bd;
+  --accent: #2ea043;
+  --accent-600: #268c3a;
+
+  font-size: 14px;
+  line-height: 1.35;
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 6px 0 12px 0;
+    color: #0f172a;
+  }
+
+  .panel {
+    background: #fff;
+    border: 1px solid #eef2f6;
+    border-radius: 14px;
+    box-shadow: 0 12px 24px rgba(2, 8, 20, .06);
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 10px 12px;
+    background: linear-gradient(180deg, var(--head-from), var(--head-to));
+    border-bottom: 1px solid #e3f1e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .panel-title {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .search {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #dbe4ee;
+    border-radius: 8px;
+    min-width: 300px;
+    background: #fff;
+  }
+  .btn {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #dbe4ee;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    color: #0f172a;
+  }
+  .btn:hover { background: #f6f9fc; }
+  .btn.warn {
+    background: #fff1f0;
+    border-color: #ffd7d5;
+    color: #b21f1f;
+  }
+  .btn.btn-save {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.btn-save:hover {
+    background: var(--accent-600);
+    border-color: var(--accent-600);
+  }
+
+  .panel-body { padding: 12px; }
+
+  .table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table th {
+    background: #f7fafc;
+    border-bottom: 1px solid #e8eef5;
+    color: #0f172a;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 12px;
+  }
+  .table td {
+    border-bottom: 1px solid #f0f4f9;
+    padding: 10px 12px;
+    vertical-align: middle;
+    color: #111827;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 1px; }
+  .is-selected { background: #eef7ff; }
+  .empty { text-align: center; color: #6b7280; padding: 18px 0; }
+
+  .pill {
+    display: inline-flex;
+    min-width: 44px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #475569;
+    font-size: 12px;
+  }
+  .pill.ok { background: #e7f6e8; color: #1a7f36; }
+
+  .panel-foot {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .rec { color: #6b7280; }
+
+  .pager { display: flex; align-items: center; gap: 6px; }
+  .pg {
+    height: 30px;
+    min-width: 30px;
+    border: 1px solid #dbe4ee;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .pg:disabled { opacity: .45; cursor: not-allowed; }
+  .pg-label { font-size: 13px; color: #0f172a; margin: 0 6px; }
+
+  /* ---------------- Dialog ---------------- */
+  .dlg {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent; /* không che xám */
+    pointer-events: none;
+    z-index: 2000;
+  }
+  .dlg__card {
+    pointer-events: auto;
+    width: min(980px, calc(100vw - 48px));
+    background: #fff;
+    border: 1px solid #eef2f6;
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(2, 8, 20, .16), 0 8px 20px rgba(2, 8, 20, .12);
+    overflow: hidden;
+  }
+  .dlg__head {
+    padding: 12px 16px;
+    background: linear-gradient(180deg, var(--head-from), var(--head-to));
+    border-bottom: 1px solid #e3f1e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dlg__title { font-weight: 700; color: #0f172a; }
+  .dlg__close {
+    border: 0; background: transparent; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 8px; color: #0f172a; opacity: .7;
+  }
+  .dlg__close:hover { background: rgba(255,255,255,.6); opacity: 1; }
+  .dlg__body { padding: 16px; }
+  .dlg__foot { padding: 12px 16px; border-top: 1px solid #eef3f7; display: flex; gap: 10px; justify-content: flex-end; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+  @media (max-width: 920px) {
+    .form-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 620px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  .col-span-2 { grid-column: 1 / -1; }
+  .col-md-1 { grid-column: auto; }
+  .lbl { display: block; font-size: 12px; color: #64748b; margin: 0 0 6px; }
+  .inp {
+    width: 100%; height: 36px; border: 1px solid #dbe4ee; border-radius: 8px; padding: 0 10px; background: #fff;
+  }
+}
+
+/* Vô hiệu các overlay/backdrop khác có thể làm màn hình xám */
+:host ::ng-deep .modal,
+:host ::ng-deep .modal-backdrop,
+:host ::ng-deep .cdk-overlay-backdrop {
+  background: transparent !important;
+  opacity: 0 !important;
+}

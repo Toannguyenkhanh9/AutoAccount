@@ -1,0 +1,156 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Outstanding A/R Invoice</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="inquiry()"><span class="ico refresh"></span> Inquiry</button>
+      <button class="btn" (click)="preview()"><span class="ico eye"></span> Preview</button>
+      <button class="btn" (click)="print()"><span class="ico print"></span> Print</button>
+      <button class="btn" (click)="toggleOptions()">{{ showOptions ? 'Hide Options' : 'Show Options' }}</button>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="options" *ngIf="showOptions">
+    <form [formGroup]="fg" class="opt-grid">
+      <fieldset>
+        <legend>Date Options</legend>
+        <label>As at <input type="date" formControlName="asOf" /></label>
+        <label>Debtor <input formControlName="debtor" placeholder="Filter by code or name" /></label>
+        <label>Doc Type
+          <select formControlName="typePreset">
+            <option value="INV_DN">Outstanding Invoice/Debit Notes</option>
+            <option value="INV_ONLY">Invoice only</option>
+            <option value="DN_ONLY">Debit Note only</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Report Options</legend>
+        <label>Sort by
+          <select formControlName="sortBy">
+            <option value="docNo">Document No</option>
+            <option value="docDate">Doc Date</option>
+            <option value="debtorCode">Debtor Code</option>
+            <option value="debtorName">Debtor Name</option>
+            <option value="salesAgent">Sales Agent</option>
+          </select>
+        </label>
+        <label class="chk">
+          <input type="checkbox" formControlName="showCriteria" />
+          Show Criteria in Report
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Other Options</legend>
+        <label>Group by
+          <select formControlName="groupBy">
+            <option value="none">None</option>
+            <option value="debtorCode">Debtor</option>
+            <option value="salesAgent">Sales Agent</option>
+          </select>
+        </label>
+      </fieldset>
+    </form>
+  </div>
+
+  <!-- Results (no group) -->
+  <div class="gridwrap" *ngIf="fg.value.groupBy==='none'">
+    <table>
+      <thead>
+        <tr>
+          <th>Debtor</th>
+          <th>Doc No</th>
+          <th>Doc Date</th>
+          <th>Term</th>
+          <th>Age</th>
+          <th>Currency</th>
+          <th class="r">Amount</th>
+          <th class="r">Local Amount</th>
+          <th class="r">Outstanding</th>
+          <th class="r">Local Outstanding</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered()">
+          <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
+          <td>{{ r.docNo }}</td>
+          <td>{{ r.docDate }}</td>
+          <td class="c">{{ r.term }}</td>
+          <td class="c">{{ r.age }}</td>
+          <td class="c">{{ r.currency }}</td>
+          <td class="r">{{ r.amount | number:'1.2-2' }}</td>
+          <td class="r">{{ r.localAmount | number:'1.2-2' }}</td>
+          <td class="r">{{ r.outstanding | number:'1.2-2' }}</td>
+          <td class="r">{{ r.localOutstanding | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Results (grouped) -->
+  <div class="gridwrap" *ngIf="fg.value.groupBy!=='none'">
+    <table>
+      <thead>
+        <tr>
+          <th>Debtor / Group</th>
+          <th>Doc No</th>
+          <th>Doc Date</th>
+          <th>Term</th>
+          <th>Age</th>
+          <th>Currency</th>
+          <th class="r">Amount</th>
+          <th class="r">Local Amount</th>
+          <th class="r">Outstanding</th>
+          <th class="r">Local Outstanding</th>
+        </tr>
+      </thead>
+
+      <ng-container *ngFor="let g of grouped()">
+        <tbody class="group-head">
+          <tr>
+            <td colspan="10">Group: <strong>{{ g.key }}</strong></td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr *ngFor="let r of g.items">
+            <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
+            <td>{{ r.docNo }}</td>
+            <td>{{ r.docDate }}</td>
+            <td class="c">{{ r.term }}</td>
+            <td class="c">{{ r.age }}</td>
+            <td class="c">{{ r.currency }}</td>
+            <td class="r">{{ r.amount | number:'1.2-2' }}</td>
+            <td class="r">{{ r.localAmount | number:'1.2-2' }}</td>
+            <td class="r">{{ r.outstanding | number:'1.2-2' }}</td>
+            <td class="r">{{ r.localOutstanding | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+        <tbody class="group-total">
+          <tr>
+            <td colspan="7"></td>
+            <td class="r"><strong>{{ g.totals.localAmount | number:'1.2-2' }}</strong></td>
+            <td></td>
+            <td class="r"><strong>{{ g.totals.localOutstanding | number:'1.2-2' }}</strong></td>
+          </tr>
+        </tbody>
+      </ng-container>
+    </table>
+  </div>
+
+  <div class="totals">
+    <div class="row"><span>Local Amount</span><strong>{{ totals().localAmount | number:'1.2-2' }}</strong></div>
+    <div class="row"><span>Local Outstanding</span><strong>{{ totals().localOutstanding | number:'1.2-2' }}</strong></div>
+  </div>
+
+  <div *ngIf="showPreview()" class="previewbox">
+    <h3>Preview – Outstanding A/R Invoice</h3>
+    <div *ngIf="fg.value.showCriteria" class="criteria">
+      <strong>As at:</strong> {{ fg.value.asOf }} &nbsp;|&nbsp;
+      <strong>Doc Type:</strong> {{ fg.value.typePreset }} &nbsp;|&nbsp;
+      <strong>Sort:</strong> {{ fg.value.sortBy }} &nbsp;|&nbsp;
+      <strong>Group:</strong> {{ fg.value.groupBy }}
+    </div>
+  </div>
+</div>

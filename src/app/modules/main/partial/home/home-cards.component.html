@@ -1,0 +1,160 @@
+<div class="frame">
+
+  <!-- Bank Book Manager -->
+  <section class="home-card" [class.collapsed]="bankCollapsed">
+    <header class="card-head">
+      <h3 class="card-title" (click)="toggle('bank')">Bank Book Manager</h3>
+      <button class="card-toggle" type="button" (click)="toggle('bank')">{{ bankCollapsed ? '＋' : '−' }}</button>
+    </header>
+
+    <div class="card-body">
+      <div class="grid">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-narrow"></th>
+              <th>Bank Account</th>
+              <th>Description</th>
+              <th>Currency Code</th>
+              <th class="right">Bal</th>
+              <th class="right">O/D Limit</th>
+              <th class="right">Available Bal</th>
+              <th class="right">PD Cheque Issued</th>
+              <th class="right">PD Cheque Received</th>
+              <th class="right">Future Bal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of bankRows">
+              <td class="col-narrow">＋</td>
+              <td>{{ r.name }}</td>
+              <td>{{ r.desc }}</td>
+              <td>{{ r.cur }}</td>
+              <td class="right">{{ r.bal    | number:'1.2-2' }}</td>
+              <td class="right">{{ r.od     | number:'1.2-2' }}</td>
+              <td class="right">{{ r.avail  | number:'1.2-2' }}</td>
+              <td class="right">{{ r.pdOut  | number:'1.2-2' }}</td>
+              <td class="right">{{ r.pdIn   | number:'1.2-2' }}</td>
+              <td class="right">{{ r.future | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sumbar">
+        <div></div>
+        <div class="sumbox">{{ totalBal    | number:'1.2-2' }}</div>
+        <div class="sumbox">{{ totalAvail  | number:'1.2-2' }}</div>
+        <div class="sumbox">{{ 0           | number:'1.2-2' }}</div>
+        <div class="sumbox">{{ totalFuture | number:'1.2-2' }}</div>
+      </div>
+
+      <div class="status">Records: {{ bankRows.length }}</div>
+    </div>
+  </section>
+
+  <!-- Overdue A/R -->
+  <section class="home-card" [class.collapsed]="arCollapsed">
+    <header class="card-head">
+      <h3 class="card-title" (click)="toggle('ar')">Overdue A/R Invoice</h3>
+      <button class="card-toggle" type="button" (click)="toggle('ar')">{{ arCollapsed ? '＋' : '−' }}</button>
+    </header>
+    <div class="card-body">
+      <div class="grid">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice No</th>
+              <th>Customer</th>
+              <th>Doc Date</th>
+              <th>Due Date</th>
+              <th class="right">Days Overdue</th>
+              <th class="right">Amount</th>
+              <th class="right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of arOverdue">
+              <td>{{ r.inv }}</td>
+              <td>{{ r.cust }}</td>
+              <td>{{ r.doc }}</td>
+              <td>{{ r.due }}</td>
+              <td class="right">{{ r.days }}</td>
+              <td class="right">{{ r.amount  | number:'1.2-2' }}</td>
+              <td class="right">{{ r.balance | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Overdue A/P -->
+  <section class="home-card" [class.collapsed]="apCollapsed">
+    <header class="card-head">
+      <h3 class="card-title" (click)="toggle('ap')">Overdue A/P Invoice</h3>
+      <button class="card-toggle" type="button" (click)="toggle('ap')">{{ apCollapsed ? '＋' : '−' }}</button>
+    </header>
+    <div class="card-body">
+      <div class="grid">
+        <table>
+          <thead>
+            <tr>
+              <th>Bill No</th>
+              <th>Supplier</th>
+              <th>Doc Date</th>
+              <th>Due Date</th>
+              <th class="right">Days Overdue</th>
+              <th class="right">Amount</th>
+              <th class="right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of apOverdue">
+              <td>{{ r.bill }}</td>
+              <td>{{ r.supp }}</td>
+              <td>{{ r.doc }}</td>
+              <td>{{ r.due }}</td>
+              <td class="right">{{ r.days }}</td>
+              <td class="right">{{ r.amount  | number:'1.2-2' }}</td>
+              <td class="right">{{ r.balance | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reorder Advice -->
+  <section class="home-card" [class.collapsed]="reCollapsed">
+    <header class="card-head">
+      <h3 class="card-title" (click)="toggle('re')">Reorder Advice</h3>
+      <button class="card-toggle" type="button" (click)="toggle('re')">{{ reCollapsed ? '＋' : '−' }}</button>
+    </header>
+    <div class="card-body">
+      <div class="grid">
+        <table>
+          <thead>
+            <tr>
+              <th>Item Code</th>
+              <th>Description</th>
+              <th class="right">On Hand</th>
+              <th class="right">Reorder Level</th>
+              <th class="right">Suggested Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of reorderAdvice">
+              <td>{{ r.item }}</td>
+              <td>{{ r.desc }}</td>
+              <td class="right">{{ r.onhand }}</td>
+              <td class="right">{{ r.reorder }}</td>
+              <td class="right">{{ r.suggest }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,243 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>A/P Payment</h1>
+    <div class="toolbar">
+                  <input class="search" placeholder="Search PV No, creditor, method…"
+             [(ngModel)]="q" />
+      <button class="btn" (click)="addNew()">New</button>
+      <button class="btn" [disabled]="!selected" (click)="edit()">Edit</button>
+      <button class="btn" [disabled]="!selected" (click)="view()">View</button>
+      <button class="btn danger" [disabled]="!selected" (click)="remove()">Delete</button>
+      <button class="btn" (click)="refresh()">Refresh</button>
+      <button class="btn" (click)="find()">Find</button>
+      <button class="btn" (click)="printListing()">Print Listing</button>
+      <button class="btn">Detail Report</button>
+    </div>
+  </div>
+  <div class="gridwrap">
+    <table>
+      <thead>
+        <tr>
+          <th (click)="setSort('pvNo')">PV No</th>
+          <th (click)="setSort('date')">Date</th>
+          <th (click)="setSort('creditorCode')">Creditor</th>
+          <th (click)="setSort('method')">Method</th>
+          <th>Currency</th>
+          <th class="num">Amount</th>
+          <th class="num">Allocated</th>
+          <th class="num">Unallocated</th>
+          <th (click)="setSort('status')">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of paged" (click)="selectRow(r)" [class.selected]="r===selected">
+          <td>{{r.pvNo}}</td>
+          <td>{{r.date}}</td>
+          <td>{{r.creditorCode}} – {{r.creditorName}}</td>
+          <td>{{r.method}}</td>
+          <td>{{r.currency}}</td>
+          <td class="num">{{r.amount | number:'1.2-2'}}</td>
+          <td class="num">{{r.allocated | number:'1.2-2'}}</td>
+          <td class="num">{{r.unallocated | number:'1.2-2'}}</td>
+          <td><span class="tag" [class.posted]="r.status==='POSTED'">{{r.status}}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <button class="pg" (click)="goto(1)">&laquo;</button>
+    <button class="pg" (click)="goto(page-1)">&lsaquo;</button>
+    <span>Page {{page}} / {{totalPages}}</span>
+    <button class="pg" (click)="goto(page+1)">&rsaquo;</button>
+    <button class="pg" (click)="goto(totalPages)">&raquo;</button>
+  </div>
+
+  <!-- EDIT dialog -->
+  <div class="dialog" *ngIf="showEdit">
+    <div class="dialog-panel max">
+      <div class="dialog-title sticky">
+        {{ form.value['pvNo'] ? 'Edit Payment' : 'New Payment' }}
+        <button class="x" (click)="showEdit=false">&times;</button>
+      </div>
+
+      <form [formGroup]="form" class="dialog-body">
+        <div class="grid3">
+          <label>Receipt No
+            <input formControlName="pvNo">
+          </label>
+          <label>Date
+            <input type="date" formControlName="date">
+          </label>
+          <label>Creditor
+            <select formControlName="creditorCode" (change)="onCreditorChange()">
+              <option *ngFor="let c of creditors" [value]="c.code">{{c.code}} — {{c.name}}</option>
+            </select>
+          </label>
+
+          <label>Creditor Name
+            <input formControlName="creditorName" readonly>
+          </label>
+          <label>Method
+            <select formControlName="method">
+              <option>Bank</option>
+              <option>Cash</option>
+              <option>Cheque</option>
+            </select>
+          </label>
+          <label>Reference / Cheque No
+            <input formControlName="reference">
+          </label>
+
+          <label>Currency
+            <select formControlName="currency">
+              <option value="MYR">MYR</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
+          <label>Amount Paid
+            <input type="number" formControlName="amount" (input)="onAmountChange()">
+          </label>
+          <label>Bank Charges
+            <input type="number" formControlName="bankCharges">
+          </label>
+
+          <label class="row">Status
+            <select formControlName="status"><option>POSTED</option><option>DRAFT</option></select>
+          </label>
+          <label>Allocated
+            <input formControlName="allocated" readonly>
+          </label>
+          <label>Unallocated
+            <input formControlName="unallocated" readonly>
+          </label>
+        </div>
+
+        <label>Narration
+          <input formControlName="narration">
+        </label>
+
+        <h4 class="mt">Open Invoices</h4>
+        <div class="open-actions">
+          <div class="gap">
+            <button type="button" class="btn light" (click)="autoAlloc()">Auto allocate</button>
+            <button type="button" class="btn light" (click)="clearAlloc()">Clear allocations</button>
+          </div>
+          <small>Click <b>+</b> to add a bill to Allocation</small>
+        </div>
+        <div class="gridwrap inner">
+          <table>
+            <thead>
+              <tr>
+                <th>Doc No</th><th>Date</th><th>Description</th>
+                <th class="num">Outstanding</th><th class="center">Add</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of openBillsForForm">
+                <td>{{b.docNo}}</td>
+                <td>{{b.date}}</td>
+                <td>{{b.description}}</td>
+                <td class="num">{{b.outstanding | number:'1.2-2'}}</td>
+                <td class="center"><button type="button" class="icon" (click)="addFromOpen(b)">+</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 class="mt">Allocation</h4>
+        <div class="gridwrap inner">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th><th>Date</th><th>Description</th>
+                <th class="num">Outstanding</th>
+                <th class="num">Allocate</th>
+                <th class="center">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of lines; let i = index">
+                <td>{{l.docNo}}</td>
+                <td>{{l.date}}</td>
+                <td>{{l.description}}</td>
+                <td class="num">{{l.outstanding | number:'1.2-2'}}</td>
+                <td class="num">
+                  <input type="number" [(ngModel)]="l.allocate" (input)="onAllocateChange()">
+                </td>
+                <td class="center"><button type="button" class="icon danger" (click)="removeLine(i)">×</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="totals">
+          <div>Allocated: <b>{{form.value['allocated'] | number:'1.2-2'}}</b></div>
+          <div>Unallocated: <b>{{form.value['unallocated'] | number:'1.2-2'}}</b></div>
+        </div>
+      </form>
+
+      <div class="dialog-actions sticky-footer">
+        <button class="btn primary" (click)="save()" [disabled]="form.invalid">Save</button>
+        <button class="btn" (click)="showEdit=false">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW dialog -->
+  <div class="dialog" *ngIf="showView && selected">
+    <div class="dialog-panel">
+      <div class="dialog-title sticky">
+        Payment Voucher — {{selected.pvNo}}
+        <button class="x" (click)="showView=false">&times;</button>
+      </div>
+      <div class="dialog-body read">
+        <div class="grid2">
+          <div><b>PV No</b><div>{{selected.pvNo}}</div></div>
+          <div><b>Date</b><div>{{selected.date}}</div></div>
+          <div><b>Creditor</b><div>{{selected.creditorCode}} — {{selected.creditorName}}</div></div>
+          <div><b>Method</b><div>{{selected.method}}</div></div>
+          <div><b>Currency</b><div>{{selected.currency}}</div></div>
+          <div><b>Amount</b><div>{{selected.amount | number:'1.2-2'}}</div></div>
+          <div><b>Allocated</b><div>{{selected.allocated | number:'1.2-2'}}</div></div>
+          <div><b>Unallocated</b><div>{{selected.unallocated | number:'1.2-2'}}</div></div>
+          <div><b>Status</b><div>{{selected.status}}</div></div>
+        </div>
+      </div>
+      <div class="dialog-actions sticky-footer">
+        <button class="btn" (click)="showView=false">Close</button>
+        <button class="btn primary" (click)="onPrint()">Payment Voucher</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIND -->
+  <div class="dialog" *ngIf="showFind">
+    <div class="dialog-panel small">
+      <div class="dialog-title">Find</div>
+      <div class="dialog-body grid2">
+        <label>Keyword
+          <input [(ngModel)]="q" placeholder="pv no / creditor / method">
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn primary" (click)="showFind=false">Apply</button>
+        <button class="btn" (click)="showFind=false">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT -->
+  <div class="dialog" *ngIf="showPrint">
+    <div class="dialog-panel small">
+      <div class="dialog-title">Print A/P Payment Listing</div>
+      <div class="dialog-body">
+        <p>This will print current filtered results.</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn primary" (click)="onPrint(); showPrint=false">Print</button>
+        <button class="btn" (click)="showPrint=false">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

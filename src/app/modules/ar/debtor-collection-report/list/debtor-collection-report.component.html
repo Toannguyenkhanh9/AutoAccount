@@ -1,0 +1,164 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Debtor Collection</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="inquiry()"><span class="ico refresh"></span> Inquiry</button>
+      <button class="btn" (click)="preview()"><span class="ico eye"></span> Preview</button>
+      <button class="btn" (click)="print()"><span class="ico print"></span> Print</button>
+      <button class="btn" (click)="toggleOptions()">{{ showOptions ? 'Hide Options' : 'Show Options' }}</button>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="options" *ngIf="showOptions">
+    <form [formGroup]="fg" class="opt-grid">
+      <fieldset>
+        <legend>Date Range</legend>
+        <label>From <input type="date" formControlName="dateFrom"></label>
+        <label>To <input type="date" formControlName="dateTo"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Filter</legend>
+        <label>Debtor <input formControlName="debtor" placeholder="Code or name"></label>
+        <label>Agent <input formControlName="agent" placeholder="Sales agent"></label>
+        <label>Method
+          <select formControlName="method">
+            <option>All</option>
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>Cheque</option>
+            <option>Transfer</option>
+          </select>
+        </label>
+        <label>Sort by
+          <select formControlName="sortBy">
+            <option value="date">Date</option>
+            <option value="receiptNo">Receipt No</option>
+            <option value="debtor">Debtor</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>View</legend>
+        <label>Group by
+          <select formControlName="groupBy">
+            <option value="none">None</option>
+            <option value="salesAgent">Sales Agent</option>
+            <option value="debtor">Debtor</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" formControlName="includeZero"> Include zero rows</label>
+        <label class="chk"><input type="checkbox" formControlName="showCriteria"> Show criteria in report</label>
+      </fieldset>
+    </form>
+  </div>
+
+  <!-- Flat grid -->
+  <div class="gridwrap" *ngIf="fg.value.groupBy==='none'">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Receipt No</th>
+          <th>Debtor</th>
+          <th>Agent</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th class="r">Amount</th>
+          <th class="r">Allocated</th>
+          <th class="r">Unallocated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered()">
+          <td>{{ r.date }}</td>
+          <td>{{ r.receiptNo }}</td>
+          <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
+          <td>{{ r.salesAgent }}</td>
+          <td>{{ r.method }}</td>
+          <td>{{ r.reference }}</td>
+          <td class="r">{{ r.amount    | number:'1.2-2' }}</td>
+          <td class="r">{{ r.allocated | number:'1.2-2' }}</td>
+          <td class="r">{{ (r.amount - r.allocated) | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6" class="r"><strong>Total</strong></td>
+          <td class="r"><strong>{{ totals().amount      | number:'1.2-2' }}</strong></td>
+          <td class="r"><strong>{{ totals().allocated   | number:'1.2-2' }}</strong></td>
+          <td class="r"><strong>{{ totals().unallocated | number:'1.2-2' }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Grouped view -->
+  <div class="gridwrap" *ngIf="fg.value.groupBy!=='none'">
+    <table>
+      <thead>
+        <tr>
+          <th *ngIf="fg.value.groupBy==='salesAgent'">Group: Sales Agent</th>
+          <th *ngIf="fg.value.groupBy==='debtor'">Group: Debtor</th>
+          <th>Date</th>
+          <th>Receipt No</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th class="r">Amount</th>
+          <th class="r">Allocated</th>
+          <th class="r">Unallocated</th>
+        </tr>
+      </thead>
+
+      <ng-container *ngFor="let g of grouped()">
+        <tbody class="group-head">
+          <tr>
+            <td colspan="9">Group: <strong>{{ g.key }}</strong></td>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr *ngFor="let r of g.items">
+            <td></td>
+            <td>{{ r.date }}</td>
+            <td>{{ r.receiptNo }}</td>
+            <td>{{ r.method }}</td>
+            <td>{{ r.reference }}</td>
+            <td class="r">{{ r.amount    | number:'1.2-2' }}</td>
+            <td class="r">{{ r.allocated | number:'1.2-2' }}</td>
+            <td class="r">{{ (r.amount - r.allocated) | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+        <tbody class="group-total">
+          <tr>
+            <td colspan="5" class="r"><strong>Subtotal</strong></td>
+            <td class="r"><strong>{{ g.totals.amount      | number:'1.2-2' }}</strong></td>
+            <td class="r"><strong>{{ g.totals.allocated   | number:'1.2-2' }}</strong></td>
+            <td class="r"><strong>{{ g.totals.unallocated | number:'1.2-2' }}</strong></td>
+          </tr>
+        </tbody>
+      </ng-container>
+
+      <tfoot>
+        <tr>
+          <td colspan="5" class="r"><strong>Grand Total</strong></td>
+          <td class="r"><strong>{{ totals().amount      | number:'1.2-2' }}</strong></td>
+          <td class="r"><strong>{{ totals().allocated   | number:'1.2-2' }}</strong></td>
+          <td class="r"><strong>{{ totals().unallocated | number:'1.2-2' }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Preview -->
+  <div *ngIf="showPreview()" class="previewbox">
+    <h3>Preview – Debtor Collection Report</h3>
+    <div *ngIf="fg.value.showCriteria" class="criteria">
+      <strong>From:</strong> {{ fg.value.dateFrom }}
+      &nbsp;|&nbsp; <strong>To:</strong> {{ fg.value.dateTo }}
+      &nbsp;|&nbsp; <strong>Method:</strong> {{ fg.value.method }}
+      &nbsp;|&nbsp; <strong>Group:</strong> {{ fg.value.groupBy }}
+    </div>
+  </div>
+</div>

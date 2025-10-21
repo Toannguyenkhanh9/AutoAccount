@@ -1,0 +1,56 @@
+<!--begin::Logo image-->
+<a routerLink="/dashboard">
+  <ng-container *ngIf="currentLayoutType === 'dark-sidebar'">
+    <div class="d-flex align-items-center gap-2">
+      <img
+        alt="Logo"
+        src="./assets/media/logos/favicon.ico"
+        class="h-25px app-sidebar-logo-default"
+      />
+      <span style="font-weight:800">AutoCount</span>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="currentLayoutType !== 'dark-sidebar'">
+    <div class="d-flex align-items-center gap-2 theme-light-show">
+      <img
+        alt="Logo"
+        src="./assets/media/logos/favicon.ico"
+        class="h-25px app-sidebar-logo-default theme-light-show"
+      />
+      <span style="font-weight:800">AutoCount</span>
+    </div>
+    <div
+      class="d-flex align-items-center gap-2 theme-light-show theme-dark-show"
+    >
+      <img
+        alt="Logo"
+        src="./assets/media/logos/favicon.ico"
+        class="h-25px app-sidebar-logo-default theme-dark-show"
+      />
+      <span style="font-weight:800">AutoCount</span>
+    </div>
+  </ng-container>
+
+  <img
+    alt="Logo"
+    src="./assets/media/logos/favicon.ico"
+    class="h-25px app-sidebar-logo-minimize"
+  />
+</a>
+<!--end::Logo image-->
+
+<ng-container *ngIf="toggleEnabled">
+  <!--begin::Sidebar toggle-->
+  <div
+    id="kt_app_sidebar_toggle"
+    class="toggleButtonClass btn btn-icon btn-shadow btn-sm btn-color-muted btn-active-color-primary body-bg h-30px w-30px position-absolute top-50 start-100 translate-middle rotate"
+    [ngClass]="toggleButtonClass"
+    data-kt-toggle="true"
+    [attr.data-kt-toggle-state]="toggleState"
+    data-kt-toggle-target="body"
+    [attr.data-kt-toggle-name]="toggleAttr"
+  >
+    <i class="bi bi-arrow-bar-left fs-5 rotate-180"></i>
+  </div>
+  <!--end::Sidebar toggle-->
+</ng-container>

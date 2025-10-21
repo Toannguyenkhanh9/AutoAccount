@@ -1,0 +1,264 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>A/R Credit Note Entry</h1>
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn btn-primary" (click)="newNote()"><span class="ico plus"></span> New</button>
+        <button class="btn" [disabled]="!selected" (click)="editNote()"><span class="ico edit"></span> Edit</button>
+        <button class="btn" [disabled]="!selected" (click)="viewNote()"><span class="ico eye"></span> View</button>
+        <button class="btn btn-danger" [disabled]="!selected" (click)="deleteNote()"><span class="ico trash"></span> Delete</button>
+      </div>
+      <div class="group">
+        <button class="btn btn-ghost" (click)="refresh()"><span class="ico refresh"></span> Refresh</button>
+        <button class="btn" (click)="openFind()"><span class="ico search"></span> Find</button>
+      </div>
+      <div class="group">
+        <button class="btn" (click)="openPrint()"><span class="ico print"></span> Print Listing</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter">
+    <input [(ngModel)]="q" placeholder="Search CN no, debtor, reference…">
+    <div class="meta">Records: {{ filtered.length }}</div>
+  </div>
+
+  <div class="gridwrap">
+    <table>
+      <thead>
+        <tr>
+          <th (click)="setSort('cnDate')">Date</th>
+          <th (click)="setSort('cnNo')">CN No</th>
+          <th (click)="setSort('debtor')">Debtor</th>
+          <th>Reference</th>
+          <th>Status</th>
+          <th class="r">Sub Total</th>
+          <th class="r">Tax</th>
+          <th class="r">Rounding</th>
+          <th class="r">Grand Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let n of paged" (click)="selectRow(n)" [class.selected]="selected===n">
+          <td>{{ n.cnDate }}</td>
+          <td>{{ n.cnNo }}</td>
+          <td>{{ n.debtor }} — {{ n.debtorName }}</td>
+          <td>{{ n.reference || '-' }}</td>
+          <td>{{ n.status }}</td>
+          <td class="r">{{ n.subTotal | number:'1.2-2' }}</td>
+          <td class="r">{{ n.taxTotal | number:'1.2-2' }}</td>
+          <td class="r">{{ n.rounding | number:'1.2-2' }}</td>
+          <td class="r">{{ n.grandTotal | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Record {{ (page-1)*pageSize + (paged.length?1:0) }} of {{ filtered.length }}</span>
+    <div class="nav">
+      <button class="pg" (click)="goFirst()">&laquo;</button>
+      <button class="pg" (click)="goPrev()">&lsaquo;</button>
+      <span class="pginfo">Page {{ page }} / {{ totalPages }}</span>
+      <button class="pg" (click)="goNext()">&rsaquo;</button>
+      <button class="pg" (click)="goLast()">&raquo;</button>
+    </div>
+  </div>
+
+  <!-- FORM MODAL -->
+  <div class="dialog" *ngIf="showForm">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        {{ formMode==='new' ? 'New Credit Note' : formMode==='edit' ? 'Edit Credit Note' : 'View Credit Note' }}
+        <button class="x" (click)="showForm=false">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <form [formGroup]="cnForm" class="hdr">
+          <div class="row">
+            <label>CN No <input formControlName="cnNo" [readonly]="formMode!=='new'"></label>
+            <label>Date <input type="date" formControlName="cnDate" [readonly]="formMode==='view'"></label>
+            <label>Debtor
+              <select formControlName="debtor" (change)="onDebtorChanged()" [disabled]="formMode==='view'">
+                <option value="" disabled>Select…</option>
+                <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+              </select>
+            </label>
+            <label>Debtor Name <input formControlName="debtorName" readonly></label>
+
+            <label>Currency
+              <select formControlName="currency" [disabled]="formMode==='view'">
+                <option>MYR</option><option>USD</option><option>SGD</option>
+              </select>
+            </label>
+            <label>Reference <input formControlName="reference" [readonly]="formMode==='view'"></label>
+            <label>Status
+              <select formControlName="status" [disabled]="formMode==='view'">
+                <option>POSTED</option><option>DRAFT</option><option>VOID</option>
+              </select>
+            </label>
+            <label class="wide">Narration <input formControlName="narration" [readonly]="formMode==='view'"></label>
+          </div>
+        </form>
+
+        <div class="lines">
+          <div class="lines-head">
+            <div class="title">Details</div>
+            <div class="actions">
+              <button class="btn" (click)="addLine()" [disabled]="formMode==='view'"><span class="ico plus"></span> Add Line</button>
+            </div>
+          </div>
+
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:140px">Item</th>
+                  <th>Description</th>
+                  <th class="r">Qty</th>
+                  <th class="r">Unit Price</th>
+                  <th>Tax Code</th>
+                  <th class="r">Tax %</th>
+                  <th class="r">Tax</th>
+                  <th class="r">Line Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let fg of linesFA.controls; let i = index" [formGroup]="fg">
+                  <td>
+                    <select formControlName="item" (change)="onItemChanged(i)" [disabled]="formMode==='view'">
+                      <option value="">(Manual)</option>
+                      <option *ngFor="let it of items" [value]="it.code">{{ it.code }} — {{ it.name }}</option>
+                    </select>
+                  </td>
+                  <td><input formControlName="description" [readonly]="formMode==='view'"></td>
+                  <td class="r"><input type="number" step="0.0001" formControlName="qty" (input)="onLineChanged(i)" [readonly]="formMode==='view'"></td>
+                  <td class="r"><input type="number" step="0.01" formControlName="price" (input)="onLineChanged(i)" [readonly]="formMode==='view'"></td>
+                  <td>
+                    <select formControlName="taxCode" (change)="onLineChanged(i)" [disabled]="formMode==='view'">
+                      <option value="SR">SR</option><option value="ZR">ZR</option><option value="EX">EX</option>
+                    </select>
+                  </td>
+                  <td class="r"><input type="number" step="0.01" formControlName="taxRate" (input)="onLineChanged(i)" [readonly]="fg.get('taxCode')?.value!=='SR' || formMode==='view'"></td>
+                  <td class="r"><input formControlName="taxAmt" readonly></td>
+                  <td class="r"><input formControlName="lineTotal" readonly></td>
+                  <td class="c"><button class="btn btn-danger" (click)="removeLine(i)" [disabled]="formMode==='view'"><span class="ico trash"></span></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals">
+            <div class="row"><span>Sub Total</span><strong>{{ cnForm.get('subTotal')?.value | number:'1.2-2' }}</strong></div>
+            <div class="row"><span>Tax Total</span><strong>{{ cnForm.get('taxTotal')?.value | number:'1.2-2' }}</strong></div>
+            <div class="row">
+              <span>Rounding</span>
+              <input type="number" step="0.01" [readonly]="formMode==='view'"
+                     [ngModel]="cnForm.get('rounding')?.value"
+                     (ngModelChange)="cnForm.patchValue({rounding: +$event}); recalcTotals();">
+            </div>
+            <div class="row grand"><span>Grand Total</span><strong>{{ cnForm.get('grandTotal')?.value | number:'1.2-2' }}</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" (click)="showForm=false">Close</button>
+        <button *ngIf="formMode!=='view'" class="btn primary" (click)="saveNote()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Find -->
+  <div class="dialog" *ngIf="showFind">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        Find Credit Note
+        <button class="x" (click)="showFind=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="findForm" class="grid3">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Debtor
+            <select formControlName="debtor">
+              <option value="">Any</option>
+              <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+            </select>
+          </label>
+          <label>Min Amount <input type="number" step="0.01" formControlName="min"></label>
+          <label>Max Amount <input type="number" step="0.01" formControlName="max"></label>
+        </form>
+        <div class="dialog-actions">
+          <button class="btn primary" (click)="runFind()">Search</button>
+        </div>
+
+        <table *ngIf="findResults.length">
+          <thead><tr><th>Date</th><th>CN No</th><th>Debtor</th><th class="r">Grand Total</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of findResults">
+              <td>{{ r.cnDate }}</td><td>{{ r.cnNo }}</td>
+              <td>{{ r.debtor }} — {{ r.debtorName }}</td>
+              <td class="r">{{ r.grandTotal | number:'1.2-2' }}</td>
+              <td><button class="btn btn-primary" (click)="pickFromFind(r)">Select</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Listing -->
+  <div class="dialog" *ngIf="showPrint">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        A/R Credit Note Listing
+        <button class="x" (click)="showPrint=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="printForm" class="grid4">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Debtor
+            <select formControlName="debtor">
+              <option value="">Any</option>
+              <option *ngFor="let d of debtors" [value]="d.code">{{ d.code }} — {{ d.name }}</option>
+            </select>
+          </label>
+          <label>Sort by
+            <select formControlName="sort">
+              <option value="cnDate">Date</option>
+              <option value="cnNo">CN No</option>
+              <option value="debtor">Debtor</option>
+              <option value="grandTotal">Grand Total</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="dialog-actions">
+          <button class="btn primary" (click)="showPreview=true">Preview</button>
+        </div>
+
+        <div class="preview" *ngIf="showPreview">
+          <h3>Credit Note Listing (Preview)</h3>
+          <table>
+            <thead><tr><th>Date</th><th>CN No</th><th>Debtor</th><th class="r">SubTotal</th><th class="r">Tax</th><th class="r">Rounding</th><th class="r">Grand</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let n of buildListing()">
+                <td>{{ n.cnDate }}</td>
+                <td>{{ n.cnNo }}</td>
+                <td>{{ n.debtor }} — {{ n.debtorName }}</td>
+                <td class="r">{{ n.subTotal | number:'1.2-2' }}</td>
+                <td class="r">{{ n.taxTotal | number:'1.2-2' }}</td>
+                <td class="r">{{ n.rounding | number:'1.2-2' }}</td>
+                <td class="r">{{ n.grandTotal | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,102 @@
+:host { display:block; height:100%; }
+
+:root {
+  --green-50:#f0fdf4;
+  --green-100:#dcfce7;
+  --green-200:#bbf7d0;
+  --green-500:#22c55e;
+  --green-600:#16a34a;
+  --green-700:#15803d;
+  --ink:#073b1a;
+  --muted:#5b6b63;
+  --ring: rgba(34,197,94,.35);
+}
+
+/* Bar nền nhẹ, hiện đại */
+.tabsbar{
+  position: relative;
+  background: linear-gradient(180deg,#e9fbe6,#c8f0c7);
+  border: 1px solid #d9eed8;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04), inset 0 1px 0 #fff;
+}
+
+/* Container tabs dạng “pill group” */
+.tabs{
+  display:flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  background: var(--green-50);
+  border: 1px solid var(--green-100);
+  padding: 6px;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+/* Nút tab hiện đại */
+.tab{
+  --bg: #fff;
+  --bd: #e7efe7;
+  --fg: #0d3a1d;
+
+  appearance: none;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 1px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.8);
+  transition: background .15s ease, border-color .15s ease, transform .04s ease, color .15s ease;
+}
+.tab:hover{
+  background: #f8fdfa;
+  border-color: #dbead8;
+}
+.tab:active{ transform: translateY(1px); }
+.tab:focus-visible{ outline: 3px solid var(--ring); outline-offset: 2px; }
+
+/* Active: nổi bật, phù hợp ứng dụng kế toán */
+.tab.active{
+  --bg: linear-gradient(180deg, #34d399, #22c55e);
+  --bd: #16a34a;
+  --fg: #ffffff;
+  color: var(--fg);
+  border-color: var(--bd);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.04);
+}
+
+/* Icon */
+.tab .ico{
+  width: 18px; height: 18px; display:inline-flex;
+}
+.tab .ico svg{
+  width: 18px; height: 18px; stroke-width: 1.9; vector-effect: non-scaling-stroke;
+}
+
+/* Nhãn */
+.tab .label{ letter-spacing: .1px; }
+
+/* Vùng nội dung */
+.content{ margin-top: 12px; }
+
+.placeholder{
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  color: #374151;
+}
+
+/* Responsive */
+@media (max-width: 640px){
+  .tab{ padding: 8px 10px; }
+  .tab .label{ font-weight: 700; }
+}

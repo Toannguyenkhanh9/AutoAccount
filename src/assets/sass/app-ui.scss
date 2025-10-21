@@ -1,0 +1,436 @@
+/* ===============================
+   AutoCount UI – Core Styles
+   (chuẩn hóa từ Creditor Maintenance)
+   =============================== */
+
+/* ---------- CSS variables (theme) ---------- */
+:root{
+  --ui-font: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+
+  --brand-50:  #f1fbec;
+  --brand-100: #e4f7da;
+  --brand-200: #d2f0c2;
+  --brand-300: #bde8a7;
+  --brand-400: #9bdc82;
+  --brand-500: #66c54a; /* nút xanh chính */
+  --brand-600: #4aa836;
+  --brand-700: #3c8a2e;
+  --brand-800: #2f6b25;
+
+  --ink-900:  #203428;
+  --ink-800:  #2c4234;
+  --ink-700:  #395243;
+  --ink-600:  #496a59;
+  --ink-500:  #6a8778;
+  --ink-400:  #94a79c;
+  --ink-300:  #bdc9c2;
+  --ink-200:  #dde4e0;
+  --ink-150:  #e9eeeb;
+  --ink-100:  #f3f6f5;
+  --ink-50:   #fafcfc;
+
+  --danger:   #d84b4b;
+  --warning:  #f2a33d;
+  --ok:       #2bb24a;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+
+  --gap-1: 6px;
+  --gap-2: 10px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+
+  --bd: 1px solid #e6efe1;
+  --bd-strong: 1px solid #d6e6d1;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.06);
+}
+
+/* ---------- Reset nho nhỏ ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; font-family: var(--ui-font); color: var(--ink-800);
+  background: var(--ink-50);
+}
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ---------- Page shell ---------- */
+.page { padding: var(--gap-4); }
+
+/* ---------- Titlebar + Toolbar ---------- */
+.titlebar{
+  display: grid; gap: var(--gap-3);
+  grid-template-columns: 1fr auto; align-items: center;
+  background: linear-gradient(180deg, #8bd66f 0%, #5abc47 100%);
+  border: var(--bd-strong); border-radius: var(--radius-sm);
+  padding: 10px 12px; margin-bottom: var(--gap-3);
+  box-shadow: var(--shadow-sm);
+  h1{
+    color: #0f4d1f;  /* xanh đậm cho chữ “Creditor Maintenance” */
+    font-weight: 700;
+  }
+  .toolbar{ display:flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+}
+
+/* ---------- Buttons ---------- */
+.btn{
+  border: 1px solid #cfddc9;
+  background: #464d44;
+  color: var(--ink-800);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s ease;
+
+  /* canh giữa nội dung nút */
+  display: inline-flex;
+  align-items: center;      /* dọc */
+  justify-content: center;  /* ngang */
+  text-align: center;
+  line-height: 1;           /* tránh lệch dọc do line-height */
+
+  /* nếu có icon + text thì giữ khoảng cách đẹp */
+  gap: 8px;
+  &:disabled { opacity:.55; cursor:not-allowed; }
+
+  &.primary{ background: #16a34a; border-color: var(--brand-500); color:#fff; }
+  &.light{ background:#fff; }
+  &.danger{ border-color: #fecaca; color: #ef4444; background: #fff5f5; }
+  &.ghost{ background: transparent; }
+  &.cancel {background:#efe9e9; }
+}
+
+
+/* ---------- Filter bar ---------- */
+.filterbar{
+  background:#fff; border: var(--bd); border-radius: var(--radius-sm);
+  padding: 10px; margin-bottom: var(--gap-3);
+  input{
+    width: 100%; padding: 8px 10px; border: 1px solid #d9e4d6;
+    border-radius: 8px; outline: none;
+    &:focus{ border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(102,197,74,.12); }
+  }
+}
+
+/* ---------- Grid / Table ---------- */
+.gridwrap{
+  background:#fff; border: var(--bd); border-radius: var(--radius-sm);
+  overflow: hidden; box-shadow: var(--shadow-sm);
+  table{ width:100%; border-collapse: collapse; }
+  thead th{
+    text-align:left; font-weight:700; font-size:13px; color: var(--ink-900);
+    background: #f5faf3; border-bottom: var(--bd); padding: 10px 12px; user-select: none; cursor: default;
+  }
+  tbody td{ padding: 10px 12px; border-bottom: 1px solid #f1f4f0; vertical-align: middle; }
+  tbody tr:hover{ background: #fbfefb; }
+  tbody tr.selected{ background: #eaf7e3; }
+  tfoot td{ padding: 10px 12px; border-top: var(--bd); background: #fbfefb; }
+  .center{ text-align:center; }
+}
+
+/* ---------- Pager ---------- */
+.pager{
+  display:flex; gap: 6px; align-items:center; justify-content:center;
+  margin-top: var(--gap-3);
+  .pg{
+    border: 1px solid #dfe8db; background:#fff; padding: 4px 10px;
+    border-radius: 10px; cursor: pointer;
+    &:hover{ background:#f4faf1; }
+  }
+}
+
+/* ---------- Dialog (no opaque backdrop để tránh lỗi che phủ) ---------- */
+.dialog{
+  position: fixed; inset: 0; display:flex; align-items:center; justify-content:center;
+  pointer-events: none; /* chỉ panel được click */
+  padding: 20px;
+  z-index: 10000;                 /* << thêm */
+  background: rgba(0,0,0,.45);    /* << thêm: backdrop để thấy rõ modal */
+  pointer-events: auto;
+}
+.dialog-panel{
+  pointer-events: auto;
+  background:#fff;
+  border: var(--bd);
+  border-radius: 12px;
+  width: min(960px, 96vw);
+  max-height: 92vh;               /* << tăng 90vh -> 92vh cho thoáng */
+  display:flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,.16);
+  padding-bottom: 20px;
+}
+.dialog-panel-small{
+  pointer-events: auto;
+  background:#fff;
+  border: var(--bd);
+  border-radius: 12px;
+  //width: min(960px, 96vw);
+  max-height: 92vh;               /* << tăng 90vh -> 92vh cho thoáng */
+  display:flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,.16);
+}
+.dialog-title{
+  position: sticky; top:0; z-index:1;
+  display:flex; align-items:center; justify-content: space-between;
+  padding: 12px 14px; font-weight:1000; color: var(--ink-900);
+  font-size: clamp(18px, 2.2vw, 24px);
+  background: linear-gradient(180deg, #8bd66f 0%, #5abc47 100%);
+  .x{
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #dfebda;
+    background:#fff; cursor:pointer; font-size: 18px; line-height: 0;
+    &:hover{ background:#f0f7ed; }
+  }
+}
+.dialog-body{
+  padding: 12px 14px; overflow:auto;
+  &.read b{ display:block; color: var(--ink-700); margin-bottom: 2px; }
+}
+.dialog-actions{
+  display:flex; gap: 8px; justify-content:flex-end; align-items:center;
+  border-top: var(--bd); background:#fbfefb; padding: 10px 12px;
+}
+
+/* ---------- Form grids ---------- */
+.grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+label{ display:flex; flex-direction: column; gap: 2px; font-weight:600; color: var(--ink-800); }
+label.row{ flex-direction: row; align-items:center; gap: 8px; font-weight:600; }
+input, select, textarea{
+  padding: 8px 10px; border: 1px solid #d9e4d6; border-radius: 8px; outline: none; background:#fff;
+  &:focus{ border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(102,197,74,.12); }
+}
+
+/* ---------- Helpers ---------- */
+.text-end{ text-align: end; }
+.monospace{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+.cut{ max-width: 480px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.spacer{ flex:1; }
+/* ===== Attach modal: 2 ô cùng hàng, canh TRÁI, sát nhau & bằng nhau ===== */
+.dialog .dialog-panel .attach-form .attach-two{
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(300px, 1fr)); /* 2 cột bằng nhau */
+  column-gap: 4px;           /* ⬅️ kéo sát hơn (có thể giảm xuống 4px nếu muốn) */
+  align-items: end;
+  justify-items: start;       /* ⬅️ canh trái */
+}
+
+.dialog .dialog-panel .attach-form .attach-two > label{
+  display: flex; flex-direction: column; gap: 6px;
+  justify-self: start;        /* ⬅️ canh trái từng field */
+  min-width: 0;
+}
+
+/* input/select chiếm full cột để 2 ô bằng nhau */
+.dialog .dialog-panel .attach-form .attach-two select,
+.dialog .dialog-panel .attach-form .attach-two input{
+  width: 100%;                /* ⬅️ thay vì width cố định */
+  height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d7dbe6; border-radius: 8px; background: #fff;
+  box-sizing: border-box;
+}
+
+/* radios giữ bên trái luôn */
+.dialog .dialog-panel .attach-form .attach-radios{
+  align-items: flex-start;
+}
+
+/* mobile: tự xuống 1 cột */
+@media (max-width: 820px){
+  .dialog .dialog-panel .attach-form .attach-two{
+    grid-template-columns: 1fr;
+  }
+}
+.dialog .dialog-panel .attach-form .attach-radios{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start;
+  gap: 4px;                 /* ↓ khoảng cách giữa 2 radio */
+  margin: 4px 0 0;          /* ↓ sát phía trên/dưới */
+}
+.dialog .dialog-panel .attach-form .attach-radios .radio-inline{
+  display: inline-flex;
+  align-items: center;      /* ⬅️ căn giữa theo chữ */
+  gap: 6px;
+  line-height: 1.2;
+}
+.dialog .dialog-panel .attach-form .attach-radios .radio-inline input{
+  margin: 0;
+  transform: translateY(0); /* reset mọi offset trước đó */
+}
+
+/* kéo sát hàng User/Password ngay bên dưới nhóm radio */
+.dialog .dialog-panel .attach-form .attach-radios + .attach-two{
+  margin-top: 4px;          /* có thể giảm còn 2px nếu muốn sát hơn */
+}
+
+/* kéo sát khoảng cách giữa label và ô nhập (User/Pass) */
+.dialog .dialog-panel .attach-form .attach-two > label{
+  gap: 4px;                 /* mặc định 6px -> 4px */
+}
+
+/* 2 ô cùng hàng – sát & bằng nhau (nếu chưa có) */
+.dialog .dialog-panel .attach-form .attach-two{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 4px;          /* ↓ khoảng cách giữa 2 textbox */
+  align-items: end;
+  justify-items: start;
+}
+.dialog .dialog-panel .attach-form .attach-two select,
+.dialog .dialog-panel .attach-form .attach-two input{
+  width: 100% !important;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+/* Hàng đôi (Server/Database & User/Password) */
+.dialog .dialog-panel .attach-form .attach-two{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;   /* 2 cột bằng nhau */
+  column-gap: 2px !important;                  /* sát nhau hơn */
+  row-gap: 8px !important;
+  align-items: end !important;
+  justify-items: start !important;             /* canh trái */
+}
+
+/* Đè mọi width cố định cũ -> fill full cột */
+.dialog .dialog-panel .attach-form .attach-two select,
+.dialog .dialog-panel .attach-form .attach-two input{
+  width: 100% !important;
+  max-width: none !important;
+  height: 40px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+/* Khoảng cách nhãn-ô nhập gọn hơn một chút */
+.dialog .dialog-panel .attach-form .attach-two > label{ gap: 4px !important; }
+
+/* Radio: mỗi cái 1 hàng, sát chữ và căn giữa theo text */
+.dialog .dialog-panel .attach-form .attach-radios{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  margin: 6px 0 2px !important;                 /* sát ô bên dưới */
+  align-items: flex-start !important;
+}
+.dialog .dialog-panel .attach-form .attach-radios .radio-inline{
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;               /* căn giữa theo chữ */
+  gap: 6px !important;
+  line-height: 1.2 !important;
+}
+.dialog .dialog-panel .attach-form .attach-radios .radio-inline input{
+  margin: 0 !important;
+  transform: translateY(0) !important;
+}
+
+/* Mobile: tự xuống 1 cột */
+@media (max-width: 820px){
+  .dialog .dialog-panel .attach-form .attach-two{
+    grid-template-columns: 1fr !important;
+  }
+}
+/* Attach: kéo 2 select lại gần nhau, co theo nội dung bên trái */
+.dialog .dialog-panel .attach-form .attach-two{
+  display: inline-grid !important;                   /* co theo nội dung, không chiếm full width */
+  grid-template-columns: max-content max-content !important;
+  column-gap: 6px !important;                        /* muốn sát hơn nữa: 4px hoặc 2px */
+  row-gap: 8px !important;
+  align-items: end !important;
+}
+
+.dialog .dialog-panel .attach-form .attach-two > label{
+  display: flex; flex-direction: column; gap: 4px !important;
+  min-width: 0;
+}
+
+/* Ô có bề rộng cố định để 2 cột đứng gần nhau */
+.dialog .dialog-panel .attach-form .attach-two select,
+.dialog .dialog-panel .attach-form .attach-two input{
+  width: 320px !important;                           /* chỉnh 280–360 tuỳ ý */
+  max-width: 320px !important;
+  height: 40px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.dialog .dialog-panel.attach-panel{
+  width: min(960px, 94vw);
+  max-height: 86vh;
+}
+.dialog .dialog-panel .attach-form input:disabled,
+.dialog .dialog-panel .attach-form select:disabled {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+  opacity: 1; /* tránh bị quá mờ */
+}
+.dialog .dialog-panel .attach-form .attach-two{
+  column-gap: 20px !important;  /* 4px → 2px */
+}
+label.chk,
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 2) Checkbox/Radio không ăn padding/border của rule input chung */
+input[type="checkbox"],
+input[type="radio"] {
+  display: inline-block;   /* tránh bị block -> xuống dòng */
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;              /* bỏ padding từ rule input chung */
+  border: none;            /* bỏ border từ rule input chung */
+  vertical-align: middle;  /* căn giữa với chữ */
+  -webkit-appearance: auto;
+          appearance: auto;
+}
+
+/* (Tùy chọn) Cỡ ô checkbox đồng đều hơn một chút */
+label.chk input[type="checkbox"],
+label:has(> input[type="checkbox"]) input[type="checkbox"] {
+  margin-right: 6px;
+}
+/* khung chứa nhóm radio: xếp theo cột, mỗi item 1 hàng */
+.radio-grid{
+  display: grid;                 /* 1 cột */
+  grid-template-columns: 1fr;
+  row-gap: 6px;                  /* khoảng cách giữa các lựa chọn */
+  justify-items: start;
+}
+
+/* mỗi lựa chọn: radio + text cùng một hàng */
+.radio-grid label.row{
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;           /* để chữ không rơi xuống dòng tách khỏi radio */
+}
+
+/* reset margin của input radio cho khỏi lệch */
+.radio-grid input[type="radio"]{
+  margin: 0;
+  transform: translateY(0);
+}
+.search1 {
+  width: 280px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  transition: box-shadow 0.15s ease;
+}
+

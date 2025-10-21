@@ -1,0 +1,32 @@
+<div class="customer-wrap">
+  <!-- LEFT: Icons -->
+  <section class="icons">
+    <div class="icons-grid">
+      <button
+        *ngFor="let s of shortcuts"
+        class="icon"
+        type="button"
+        (click)="onOpenShortcut(s)"
+      >
+        <span class="ico-badge">{{ s.code }}</span>
+        <span class="label" [title]="s.label">{{ s.label }}</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- RIGHT: Reports -->
+  <aside class="reports">
+    <div class="reports-head">Reports</div>
+    <div class="reports-list">
+      <button
+        *ngFor="let r of reports"
+        class="report-item"
+        type="button"
+       (click)="onOpenReport(r)"
+      >
+        <span class="rep-ico" aria-hidden="true"></span>
+        <span class="rep-title">{{ r.title }}</span>
+      </button>
+    </div>
+  </aside>
+</div>

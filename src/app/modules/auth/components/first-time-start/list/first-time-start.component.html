@@ -1,0 +1,266 @@
+<div class="page">
+  <!-- Header -->
+  <div class="titlebar">
+    <h1>First Time Start</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="prev()" [disabled]="!canPrev()">Back</button>
+      <button class="btn" (click)="next()" [disabled]="!canNext()">Next</button>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <button
+      *ngFor="let s of steps; let i = index"
+      type="button"
+      class="step"
+      [class.active]="isCurrent(i)"
+      (click)="go(i)">
+      <span class="dot">{{ i+1 }}</span>
+      <span class="label">{{ s.title }}</span>
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Company -->
+    <div *ngIf="isCurrent(0)" class="group">
+      <div class="group-title">Company Information</div>
+      <div class="grid2">
+        <label>Company Code
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.code')!.value" (ngModelChange)="form.get('company.code')!.setValue($event)">
+        </label>
+        <label>Company Name
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.name')!.value" (ngModelChange)="form.get('company.name')!.setValue($event)">
+        </label>
+
+        <label>Registration No.
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.regNo')!.value" (ngModelChange)="form.get('company.regNo')!.setValue($event)">
+        </label>
+        <label>Tax Reg. No.
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.taxRegNo')!.value" (ngModelChange)="form.get('company.taxRegNo')!.setValue($event)">
+        </label>
+
+        <label class="span-2">Address 1
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.address1')!.value" (ngModelChange)="form.get('company.address1')!.setValue($event)">
+        </label>
+        <label class="span-2">Address 2
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.address2')!.value" (ngModelChange)="form.get('company.address2')!.setValue($event)">
+        </label>
+        <label class="span-2">Address 3
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.address3')!.value" (ngModelChange)="form.get('company.address3')!.setValue($event)">
+        </label>
+
+        <label>Postcode
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.postcode')!.value" (ngModelChange)="form.get('company.postcode')!.setValue($event)">
+        </label>
+        <label>City
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.city')!.value" (ngModelChange)="form.get('company.city')!.setValue($event)">
+        </label>
+        <label>State
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.state')!.value" (ngModelChange)="form.get('company.state')!.setValue($event)">
+        </label>
+        <label>Country
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.country')!.value" (ngModelChange)="form.get('company.country')!.setValue($event)">
+        </label>
+
+        <label>Phone
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.phone')!.value" (ngModelChange)="form.get('company.phone')!.setValue($event)">
+        </label>
+        <label>Email
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.email')!.value" (ngModelChange)="form.get('company.email')!.setValue($event)">
+        </label>
+        <label class="span-2">Website
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('company.website')!.value" (ngModelChange)="form.get('company.website')!.setValue($event)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Accounting Period -->
+    <div *ngIf="isCurrent(1)" class="group">
+      <div class="group-title">Accounting Period</div>
+      <div class="grid2">
+        <label>Fiscal Year Start Month
+          <select [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('period.fiscalYearStartMonth')!.value" (ngModelChange)="form.get('period.fiscalYearStartMonth')!.setValue($event)">
+            <option *ngFor="let m of months" [ngValue]="m.v">{{ m.n }}</option>
+          </select>
+        </label>
+        <label>Opening Date
+          <input type="date" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('period.openingDate')!.value" (ngModelChange)="form.get('period.openingDate')!.setValue($event)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Currency & Tax -->
+    <div *ngIf="isCurrent(2)" class="group">
+      <div class="group-title">Currency & Tax</div>
+      <div class="grid2">
+        <label>Base Currency
+          <select [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('currency.baseCurrency')!.value" (ngModelChange)="form.get('currency.baseCurrency')!.setValue($event)">
+            <option *ngFor="let c of currencies" [ngValue]="c">{{ c }}</option>
+          </select>
+        </label>
+
+        <label>Price Include Tax
+          <select [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('currency.priceIncludeTax')!.value" (ngModelChange)="form.get('currency.priceIncludeTax')!.setValue($event)">
+            <option [ngValue]="false">No</option>
+            <option [ngValue]="true">Yes</option>
+          </select>
+        </label>
+
+        <label>Tax Method
+          <select [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('currency.taxMethod')!.value" (ngModelChange)="form.get('currency.taxMethod')!.setValue($event)">
+            <option [ngValue]="'EXCLUSIVE'">Exclusive</option>
+            <option [ngValue]="'INCLUSIVE'">Inclusive</option>
+          </select>
+        </label>
+
+        <label>Default Sales Tax
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('currency.defaultSalesTax')!.value" (ngModelChange)="form.get('currency.defaultSalesTax')!.setValue($event)" placeholder="e.g. SST-6%">
+        </label>
+
+        <label>Default Purchase Tax
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('currency.defaultPurchaseTax')!.value" (ngModelChange)="form.get('currency.defaultPurchaseTax')!.setValue($event)" placeholder="e.g. SST-6%">
+        </label>
+      </div>
+    </div>
+
+    <!-- Numbering & Rounding -->
+    <div *ngIf="isCurrent(3)" class="group">
+      <div class="group-title">Numbering & Rounding</div>
+      <div class="grid2">
+        <label>Qty Decimals
+          <input type="number" min="0" max="4" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.qtyDecimals')!.value" (ngModelChange)="form.get('number.qtyDecimals')!.setValue($event)">
+        </label>
+        <label>Price Decimals
+          <input type="number" min="0" max="4" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.priceDecimals')!.value" (ngModelChange)="form.get('number.priceDecimals')!.setValue($event)">
+        </label>
+        <label>Amount Decimals
+          <input type="number" min="0" max="4" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.amtDecimals')!.value" (ngModelChange)="form.get('number.amtDecimals')!.setValue($event)">
+        </label>
+
+        <label class="span-2">Invoice Pattern
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.invPattern')!.value" (ngModelChange)="form.get('number.invPattern')!.setValue($event)" placeholder="{yyyy}{MM}-{00000}">
+        </label>
+        <label class="span-2">Debit Note Pattern
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.dnPattern')!.value" (ngModelChange)="form.get('number.dnPattern')!.setValue($event)" placeholder="DN-{yyyy}{MM}-{00000}">
+        </label>
+        <label class="span-2">Credit Note Pattern
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.cnPattern')!.value" (ngModelChange)="form.get('number.cnPattern')!.setValue($event)" placeholder="CN-{yyyy}{MM}-{00000}">
+        </label>
+        <label class="span-2">Payment Pattern
+          <input class="mono" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('number.payPattern')!.value" (ngModelChange)="form.get('number.payPattern')!.setValue($event)" placeholder="PAY-{yyyy}{MM}-{00000}">
+        </label>
+      </div>
+    </div>
+
+    <!-- COA -->
+    <div *ngIf="isCurrent(4)" class="group">
+      <div class="group-title">Chart of Accounts</div>
+      <div class="grid2">
+        <label>Template
+          <select [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('coa.template')!.value" (ngModelChange)="form.get('coa.template')!.setValue($event)">
+            <option *ngFor="let t of coaTemplates" [ngValue]="t.value">{{ t.label }}</option>
+          </select>
+        </label>
+
+        <label class="row">
+          <input type="checkbox" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('coa.importSampleOpening')!.value" (ngModelChange)="form.get('coa.importSampleOpening')!.setValue($event)">
+          Import sample opening balances
+        </label>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div *ngIf="isCurrent(5)" class="group">
+      <div class="group-title">Users</div>
+      <div class="grid2">
+        <label>Admin User
+          <input [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('users.adminUser')!.value" (ngModelChange)="form.get('users.adminUser')!.setValue($event)">
+        </label>
+        <label>Admin Password
+          <input type="password" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('users.adminPassword')!.value" (ngModelChange)="form.get('users.adminPassword')!.setValue($event)">
+        </label>
+        <label class="span-2">Confirm Password
+          <input type="password" [ngModelOptions]="{standalone:true}" [(ngModel)]="form.get('users.confirmPass')!.value" (ngModelChange)="form.get('users.confirmPass')!.setValue($event)">
+        </label>
+      </div>
+      <div class="warn" *ngIf="!passwordsMatch()">Passwords do not match.</div>
+    </div>
+
+    <!-- Review -->
+    <div *ngIf="isCurrent(6)" class="group">
+      <div class="group-title">Review & Create</div>
+
+      <div class="grid2">
+        <div class="summary-card">
+          <h4>Company</h4>
+          <div>Code: <b>{{ summary().Company.Code }}</b></div>
+          <div>Name: <b>{{ summary().Company.Name }}</b></div>
+          <div>Tax Reg No: <b>{{ summary().Company['Tax Reg No'] }}</b></div>
+          <div>Phone: <b>{{ summary().Company.Phone }}</b></div>
+          <div>Email: <b>{{ summary().Company.Email }}</b></div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Accounting Period</h4>
+          <div>Fiscal Start Month: <b>{{ summary()['Accounting Period']['Fiscal Start Month'] }}</b></div>
+          <div>Opening Date: <b>{{ summary()['Accounting Period']['Opening Date'] }}</b></div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Currency & Tax</h4>
+          <div>Base Currency: <b>{{ summary()['Currency & Tax']['Base Currency'] }}</b></div>
+          <div>Price Include Tax: <b>{{ summary()['Currency & Tax']['Price Include Tax'] }}</b></div>
+          <div>Tax Method: <b>{{ summary()['Currency & Tax']['Tax Method'] }}</b></div>
+          <div>Default Sales Tax: <b>{{ summary()['Currency & Tax']['Default Sales Tax'] }}</b></div>
+          <div>Default Purchase Tax: <b>{{ summary()['Currency & Tax']['Default Purchase Tax'] }}</b></div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Numbering & Rounding</h4>
+          <div>Qty Decimals: <b>{{ summary()['Numbering & Rounding']['Qty Decimals'] }}</b></div>
+          <div>Price Decimals: <b>{{ summary()['Numbering & Rounding']['Price Decimals'] }}</b></div>
+          <div>Amount Decimals: <b>{{ summary()['Numbering & Rounding']['Amount Decimals'] }}</b></div>
+          <div>Invoice Pattern: <b class="mono">{{ summary()['Numbering & Rounding']['Invoice Pattern'] }}</b></div>
+          <div>Debit Note Pattern: <b class="mono">{{ summary()['Numbering & Rounding']['Debit Note Pattern'] }}</b></div>
+          <div>Credit Note Pattern: <b class="mono">{{ summary()['Numbering & Rounding']['Credit Note Pattern'] }}</b></div>
+          <div>Payment Pattern: <b class="mono">{{ summary()['Numbering & Rounding']['Payment Pattern'] }}</b></div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Chart of Accounts</h4>
+          <div>Template: <b>{{ summary()['Chart of Accounts']['Template'] }}</b></div>
+          <div>Import Sample Opening: <b>{{ summary()['Chart of Accounts']['Import Sample Opening'] }}</b></div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Users</h4>
+          <div>Admin User: <b>{{ summary().Users['Admin User'] }}</b></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" (click)="prev()">Back</button>
+        <button class="btn primary" (click)="createNow()" [disabled]="!form.valid || !passwordsMatch()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- done dialog -->
+  <div class="dialog" *ngIf="showDone()">
+    <div class="dialog-panel small">
+      <div class="dialog-title">
+        Setup Complete
+        <button class="x" (click)="closeDone()">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p>Your account book has been initialized successfully.</p>
+        <p>You can now start using the system.</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn primary" (click)="closeDone()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

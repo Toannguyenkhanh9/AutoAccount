@@ -1,0 +1,165 @@
+<div class="page">
+    <div class="titlebar">
+      <h1>Account Maintenance</h1>
+
+      <div class="toolbar">
+        <input class="search" type="text"
+               placeholder="Search code / name / type / parent…"
+               [(ngModel)]="q" (input)="page=1" />
+
+        <button class="btn" (click)="openNew()">New</button>
+        <button class="btn" [disabled]="!selected" (click)="openEdit()">Edit</button>
+        <button class="btn warn" [disabled]="!selected" (click)="delete()">Delete</button>
+
+        <button class="btn" (click)="refresh()">Refresh</button>
+        <button class="btn" (click)="printListing()">Print Listing</button>
+      </div>
+    </div>
+
+    <div class="gridwrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px">Code</th>
+            <th>Name / Description</th>
+            <th style="width:110px">Type</th>
+            <th style="width:70px">Level</th>
+            <th style="width:120px">Parent</th>
+            <th style="width:80px">Curr</th>
+            <th style="width:90px">Posting</th>
+            <th style="width:90px">Cash/Bank</th>
+            <th style="width:80px">Active</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let a of filtered() | slice:(page-1)*pageSize:(page-1)*pageSize+pageSize"
+              (click)="selected=a"
+              [class.is-selected]="selected===a">
+
+            <td class="mono">{{ a.code }}</td>
+            <td class="clip" [title]="a.name">{{ a.name }}</td>
+            <td>{{ a.type }}</td>
+            <td class="mono">L{{ a.level }}</td>
+            <td class="mono">{{ a.parent || '-' }}</td>
+            <td>{{ a.currency }}</td>
+            <td><span class="pill" [class.ok]="a.posting"> {{ a.posting ? 'Yes' : 'No' }} </span></td>
+            <td><span class="pill" [class.ok]="a.cashBank"> {{ a.cashBank ? 'Yes' : 'No' }} </span></td>
+            <td><span class="pill" [class.ok]="a.active"> {{ a.active ? 'Yes' : 'No' }} </span></td>
+          </tr>
+
+          <tr *ngIf="(filtered() || []).length === 0">
+            <td class="empty" colspan="9">No accounts</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-foot">
+      <div class="rec">Records: {{ filtered().length }}</div>
+
+      <div class="pager">
+        <button class="pg" [disabled]="page===1" (click)="page=1">&laquo;</button>
+        <button class="pg" [disabled]="page===1" (click)="page=page-1">&lsaquo;</button>
+        <span class="pg-label">Page {{ page }} / {{ pageCount() }}</span>
+        <button class="pg" [disabled]="page===pageCount()" (click)="page=page+1">&rsaquo;</button>
+        <button class="pg" [disabled]="page===pageCount()" (click)="page=pageCount()">&raquo;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog Create / Edit -->
+  <div class="dialog" *ngIf="showDialog">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        {{ editMode ? 'Edit Account' : 'Create Account' }}
+        <button class="x" (click)="closeDialog()">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="grid2">
+          <div>
+            <label class="lbl">Code</label>
+            <input class="inp mono" [(ngModel)]="form.code" [readonly]="editMode" placeholder="e.g. 1100" />
+          </div>
+
+          <div class="col-span-2 col-md-1">
+            <label class="lbl">Name / Description</label>
+            <input class="inp" [(ngModel)]="form.name" />
+          </div>
+
+          <div>
+            <label class="lbl">Type</label>
+            <select class="inp" [(ngModel)]="form.type">
+              <option>Asset</option>
+              <option>Liability</option>
+              <option>Equity</option>
+              <option>Revenue</option>
+              <option>Expense</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Level</label>
+            <select class="inp" [(ngModel)]="form.level">
+              <option [ngValue]="1">1</option>
+              <option [ngValue]="2">2</option>
+              <option [ngValue]="3">3</option>
+              <option [ngValue]="4">4</option>
+              <option [ngValue]="5">5</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Parent (for level > 1)</label>
+            <select class="inp" [(ngModel)]="form.parent">
+              <option [ngValue]="null">-- None --</option>
+              <option *ngFor="let p of parentsFor(form.level)" [ngValue]="p">{{ p }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Currency</label>
+            <select class="inp" [(ngModel)]="form.currency">
+              <option>MYR</option>
+              <option>USD</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Posting</label>
+            <select class="inp" [(ngModel)]="form.posting">
+              <option [ngValue]="true">Yes</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Cash/Bank</label>
+            <select class="inp" [(ngModel)]="form.cashBank">
+              <option [ngValue]="true">Yes</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="lbl">Active</label>
+            <select class="inp" [(ngModel)]="form.active">
+              <option [ngValue]="true">Yes</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <label class="lbl">Remark / Note</label>
+            <input class="inp" [(ngModel)]="form.note" />
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" (click)="closeDialog()">Cancel</button>
+        <button class="btn primary" (click)="save()">{{ editMode ? 'Save' : 'Create' }}</button>
+      </div>
+    </div>
+  </div>

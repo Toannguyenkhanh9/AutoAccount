@@ -1,0 +1,104 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Debtor Statement</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="inquiry()"><span class="ico refresh"></span> Inquiry</button>
+      <button class="btn" (click)="preview()"><span class="ico eye"></span> Preview</button>
+      <button class="btn" (click)="print()"><span class="ico print"></span> Print</button>
+      <button class="btn" (click)="toggleOptions()">{{ showOptions ? 'Hide Options' : 'Show Options' }}</button>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="options" *ngIf="showOptions">
+    <form [formGroup]="fg" class="opt-grid">
+      <fieldset>
+        <legend>Date Range</legend>
+        <label>From <input type="date" formControlName="dateFrom"></label>
+        <label>To <input type="date" formControlName="dateTo"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Filters</legend>
+        <label>Debtor <input formControlName="debtor" placeholder="Filter by code or name"></label>
+        <label>Sort by
+          <select formControlName="sortBy">
+            <option value="date">Document Date</option>
+            <option value="docNo">Document No</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" formControlName="includeZero"> Include zero-balance account</label>
+        <label class="chk"><input type="checkbox" formControlName="showCriteria"> Show Criteria in Report</label>
+      </fieldset>
+    </form>
+  </div>
+
+  <!-- Result -->
+  <div class="result-info">
+    Results: <strong>{{ statements().length }}</strong> debtor(s)
+  </div>
+
+  <div class="statements">
+    <div class="stmt-card" *ngFor="let st of statements()">
+      <div class="stmt-head">
+        <div class="name">{{ st.debtorKey }}</div>
+        <div class="open">Opening: <strong>{{ st.opening | number:'1.2-2' }}</strong></div>
+      </div>
+
+      <div class="gridwrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Doc No</th>
+              <th>Description</th>
+              <th class="r">Debit</th>
+              <th class="r">Credit</th>
+              <th class="r">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="opening">
+              <td colspan="5"><em>Opening Balance</em></td>
+              <td class="r"><strong>{{ st.opening | number:'1.2-2' }}</strong></td>
+            </tr>
+            <tr *ngFor="let ln of st.lines">
+              <td>{{ ln.date }}</td>
+              <td>{{ ln.docNo }}</td>
+              <td>{{ ln.description }}</td>
+              <td class="r">{{ ln.debit  | number:'1.2-2' }}</td>
+              <td class="r">{{ ln.credit | number:'1.2-2' }}</td>
+              <td class="r">{{ ln.balance | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="r"><strong>Period Total</strong></td>
+              <td class="r"><strong>{{ st.totals.debit  | number:'1.2-2' }}</strong></td>
+              <td class="r"><strong>{{ st.totals.credit | number:'1.2-2' }}</strong></td>
+              <td class="r"><strong>{{ st.totals.closing | number:'1.2-2' }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grand totals -->
+  <div class="totals">
+    <div class="row"><span>Opening</span><strong>{{ grand().opening | number:'1.2-2' }}</strong></div>
+    <div class="row"><span>Debit</span><strong>{{ grand().debit | number:'1.2-2' }}</strong></div>
+    <div class="row"><span>Credit</span><strong>{{ grand().credit | number:'1.2-2' }}</strong></div>
+    <div class="row final"><span>Closing</span><strong>{{ grand().closing | number:'1.2-2' }}</strong></div>
+  </div>
+
+  <!-- Preview -->
+  <div *ngIf="showPreview()" class="previewbox">
+    <h3>Preview – Debtor Statement</h3>
+    <div *ngIf="fg.value.showCriteria" class="criteria">
+      <strong>From:</strong> {{ fg.value.dateFrom }} &nbsp;|&nbsp;
+      <strong>To:</strong> {{ fg.value.dateTo }} &nbsp;|&nbsp;
+      <strong>Sort:</strong> {{ fg.value.sortBy }}
+    </div>
+  </div>
+</div>

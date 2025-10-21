@@ -1,0 +1,187 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>Creditor Aging Report</h1>
+    <div class="toolbar">
+      <button class="btn" (click)="inquiry()">Inquiry</button>
+      <button class="btn" (click)="preview()">Preview</button>
+      <button class="btn" (click)="doPrint()">Print</button>
+      <button class="btn ghost" (click)="toggleOptions()">
+        {{ showOptions ? 'Hide Options' : 'Show Options' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="card options" *ngIf="showOptions">
+    <form [formGroup]="filters" class="grid4">
+      <label>
+        <span>As at date</span>
+        <input type="date" formControlName="asOf">
+      </label>
+
+      <label>
+        <span>Search creditor</span>
+        <input type="text" formControlName="creditor" placeholder="Code or company name...">
+      </label>
+
+      <label>
+        <span>Sort by</span>
+        <select formControlName="sort">
+          <option>Creditor Code</option>
+          <option>Company Name</option>
+          <option>Agent</option>
+          <option>Area</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Group by</span>
+        <select formControlName="groupBy">
+          <option>None</option>
+          <option>Agent</option>
+          <option>Area</option>
+        </select>
+      </label>
+
+      <label class="fullrow chk">
+        <input type="checkbox" formControlName="showCriteria">
+        <span>Show criteria in report</span>
+      </label>
+
+      <div class="fullrow right">
+        <button class="btn" type="button" (click)="inquiry()">Apply</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card table-card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 140px">Creditor Code</th>
+          <th>Company Name</th>
+          <th style="width: 90px">Agent</th>
+          <th style="width: 110px">Area</th>
+          <th class="num">0–30</th>
+          <th class="num">31–60</th>
+          <th class="num">61–90</th>
+          <th class="num">&gt; 90</th>
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+
+      <ng-container *ngFor="let g of groups">
+        <tbody class="group-head" *ngIf="groups.length > 1">
+          <tr>
+            <td colspan="9"><b>{{g.key}}</b></td>
+          </tr>
+        </tbody>
+
+        <tbody>
+          <tr *ngFor="let r of g.rows">
+            <td>{{ r.creditorCode }}</td>
+            <td>{{ r.creditorName }}</td>
+            <td>{{ r.agent }}</td>
+            <td>{{ r.area }}</td>
+            <td class="num">{{ r.b0_30 | number:'1.2-2' }}</td>
+            <td class="num">{{ r.b31_60 | number:'1.2-2' }}</td>
+            <td class="num">{{ r.b61_90 | number:'1.2-2' }}</td>
+            <td class="num">{{ r.b90_plus | number:'1.2-2' }}</td>
+            <td class="num"><b>{{ r.total | number:'1.2-2' }}</b></td>
+          </tr>
+
+          <tr class="sub">
+            <td colspan="4" class="right"><b>Subtotal</b></td>
+            <td class="num"><b>{{ g.sub0_30     | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ g.sub31_60    | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ g.sub61_90    | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ g.sub90_plus  | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ g.subTotal    | number:'1.2-2' }}</b></td>
+          </tr>
+        </tbody>
+      </ng-container>
+
+      <tfoot>
+        <tr>
+          <td colspan="4" class="right"><b>Grand Total</b></td>
+          <td class="num"><b>{{ grand0_30    | number:'1.2-2' }}</b></td>
+          <td class="num"><b>{{ grand31_60   | number:'1.2-2' }}</b></td>
+          <td class="num"><b>{{ grand61_90   | number:'1.2-2' }}</b></td>
+          <td class="num"><b>{{ grand90_plus | number:'1.2-2' }}</b></td>
+          <td class="num"><b>{{ grandTotal   | number:'1.2-2' }}</b></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Preview / Print -->
+  <div class="print-overlay" *ngIf="showPrint">
+    <div class="print-sheet">
+      <div class="sheet-head">
+        <div>
+          <div class="sheet-title">Creditor Aging Report</div>
+          <div class="criteria" *ngIf="filters.value.showCriteria">
+            As at: {{ filters.value.asOf }} &nbsp; | &nbsp;
+            Sort: {{ filters.value.sort }} &nbsp; | &nbsp;
+            Group: {{ filters.value.groupBy }}
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <button class="btn ghost" (click)="closePreview()">Close</button>
+          <button class="btn" (click)="doPrint()">Print</button>
+        </div>
+      </div>
+
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th>Creditor Code</th>
+            <th>Company Name</th>
+            <th>Agent</th>
+            <th>Area</th>
+            <th class="num">0–30</th>
+            <th class="num">31–60</th>
+            <th class="num">61–90</th>
+            <th class="num">&gt; 90</th>
+            <th class="num">Total</th>
+          </tr>
+        </thead>
+        <ng-container *ngFor="let g of groups">
+          <tbody *ngIf="groups.length>1">
+            <tr class="group-row"><td colspan="9"><b>{{g.key}}</b></td></tr>
+          </tbody>
+          <tbody>
+            <tr *ngFor="let r of g.rows">
+              <td>{{ r.creditorCode }}</td>
+              <td>{{ r.creditorName }}</td>
+              <td>{{ r.agent }}</td>
+              <td>{{ r.area }}</td>
+              <td class="num">{{ r.b0_30 | number:'1.2-2' }}</td>
+              <td class="num">{{ r.b31_60 | number:'1.2-2' }}</td>
+              <td class="num">{{ r.b61_90 | number:'1.2-2' }}</td>
+              <td class="num">{{ r.b90_plus | number:'1.2-2' }}</td>
+              <td class="num"><b>{{ r.total | number:'1.2-2' }}</b></td>
+            </tr>
+            <tr class="sub">
+              <td colspan="4" class="right"><b>Subtotal</b></td>
+              <td class="num"><b>{{ g.sub0_30     | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ g.sub31_60    | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ g.sub61_90    | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ g.sub90_plus  | number:'1.2-2' }}</b></td>
+              <td class="num"><b>{{ g.subTotal    | number:'1.2-2' }}</b></td>
+            </tr>
+          </tbody>
+        </ng-container>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="right"><b>Grand Total</b></td>
+            <td class="num"><b>{{ grand0_30    | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ grand31_60   | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ grand61_90   | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ grand90_plus | number:'1.2-2' }}</b></td>
+            <td class="num"><b>{{ grandTotal   | number:'1.2-2' }}</b></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>

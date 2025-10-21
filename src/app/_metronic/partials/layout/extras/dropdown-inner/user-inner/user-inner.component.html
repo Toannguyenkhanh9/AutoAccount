@@ -1,0 +1,99 @@
+<style>
+  .dlg-backdrop { background: rgba(0,0,0,.45); }
+.logout-overlay-panel { z-index: 10000; }
+.logout-card{
+  width: 340px; background:#fff; border-radius:12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.16); padding: 10px;
+}
+.logout-title{ display:flex; justify-content:space-between; align-items:center; font-weight:700; }
+.logout-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+</style>
+<ng-container *ngIf="user$ | async as _user">
+  <div class="menu-item px-3">
+    <div class="menu-content d-flex align-items-center px-3">
+      <div class="symbol symbol-50px me-5">
+        <img
+          src="assets/media/avatars/blank.png"
+          [alt]="_user.UserName"
+          [title]="_user.UserName"
+        />
+      </div>
+
+      <div class="d-flex flex-column">
+        <div class="fw-bolder d-flex align-items-center fs-5 text-uppercase">
+          {{ _user.UserName }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="separator my-2"></div>
+
+  <div
+    class="menu-item px-5"
+    data-kt-menu-trigger="hover"
+    data-kt-menu-placement="left-start"
+    data-kt-menu-flip="bottom"
+  >
+    <a class="menu-link px-5 cursor-pointer">
+      <span class="menu-title position-relative">
+        Language
+        <span
+          class="fs-8 rounded bg-light px-3 py-2 position-absolute translate-middle-y top-50 end-0"
+        >
+          {{ language.name }}{{ " " }}
+          <img
+            class="w-15px h-15px rounded-1 ms-2"
+            [src]="language.flag"
+            alt="metronic"
+          />
+        </span>
+      </span>
+    </a>
+
+    <div class="menu-sub menu-sub-dropdown w-175px py-4">
+      <div
+        *ngFor="let l of langs"
+        class="menu-item px-3 cursor-pointer"
+        (click)="selectLanguage(l.lang)"
+      >
+        <a
+          class="menu-link d-flex px-5"
+          [ngClass]="l.lang === language.lang ? 'active' : ''"
+        >
+          <span class="symbol symbol-20px me-4">
+            <img class="rounded-1" [src]="l.flag" alt="metronic" />
+          </span>
+          {{ l.name }}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-item px-5">
+    <a (click)="logout()" class="menu-link px-5 cursor-pointer"> Sign Out </a>
+  </div>
+  <div class="dialog" *ngIf="showLogoutConfirm">
+  <div class="dialog-panel-small">
+    <div class="dialog-title">
+      Logout
+      <button class="x" (click)="cancelLogout()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="dialog-body">
+      <p>You are about to logout from the application.</p>
+      <p>Would you like to back up your data before leaving?</p>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="btn" (click)="cancelLogout()">Cancel</button>
+      <button class="btn" (click)="logoutOnly()">Logout</button>
+      <button class="btn primary" (click)="backupAndLogout()" [disabled]="isBackingUp">
+        <ng-container *ngIf="!isBackingUp; else backing">Backup & Logout</ng-container>
+        <ng-template #backing>Backing up…</ng-template>
+      </button>
+    </div>
+  </div>
+</div>
+</ng-container>
+

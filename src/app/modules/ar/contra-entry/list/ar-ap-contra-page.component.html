@@ -1,0 +1,271 @@
+<div class="page">
+  <div class="titlebar">
+    <h1>A/R and A/P Contra Entry</h1>
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn btn-primary" (click)="newEntry()"><span class="ico plus"></span> New</button>
+        <button class="btn" [disabled]="!selected" (click)="editEntry()"><span class="ico edit"></span> Edit</button>
+        <button class="btn" [disabled]="!selected" (click)="viewEntry()"><span class="ico eye"></span> View</button>
+        <button class="btn btn-danger" [disabled]="!selected" (click)="deleteEntry()"><span class="ico trash"></span> Delete</button>
+      </div>
+      <div class="group">
+        <button class="btn btn-ghost" (click)="refresh()"><span class="ico refresh"></span> Refresh</button>
+        <button class="btn" (click)="openFind()"><span class="ico search"></span> Find</button>
+      </div>
+      <div class="group">
+        <button class="btn" (click)="openPrint()"><span class="ico print"></span> Print Listing</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter">
+    <input [(ngModel)]="q" placeholder="Search contra no, party, narration…">
+    <div class="meta">Records: {{ filtered.length }}</div>
+  </div>
+
+  <div class="gridwrap">
+    <table>
+      <thead>
+      <tr>
+        <th (click)="setSort('contraDate')">Date</th>
+        <th (click)="setSort('contraNo')">Contra No</th>
+        <th (click)="setSort('party')">Party</th>
+        <th>Narration</th>
+        <th>Status</th>
+        <th class="r">Total AR</th>
+        <th class="r">Total AP</th>
+        <th class="r">Difference</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let n of paged" (click)="selectRow(n)" [class.selected]="selected===n">
+        <td>{{ n.contraDate }}</td>
+        <td>{{ n.contraNo }}</td>
+        <td>{{ n.party }} — {{ n.partyName }}</td>
+        <td>{{ n.narration || '-' }}</td>
+        <td>{{ n.status }}</td>
+        <td class="r">{{ n.totalAR | number:'1.2-2' }}</td>
+        <td class="r">{{ n.totalAP | number:'1.2-2' }}</td>
+        <td class="r" [class.bad]="n.difference!==0">{{ n.difference | number:'1.2-2' }}</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Record {{ (page-1)*pageSize + (paged.length?1:0) }} of {{ filtered.length }}</span>
+    <div class="nav">
+      <button class="pg" (click)="goFirst()">&laquo;</button>
+      <button class="pg" (click)="goPrev()">&lsaquo;</button>
+      <span class="pginfo">Page {{ page }} / {{ totalPages }}</span>
+      <button class="pg" (click)="goNext()">&rsaquo;</button>
+      <button class="pg" (click)="goLast()">&raquo;</button>
+    </div>
+  </div>
+
+  <!-- FORM MODAL -->
+  <div class="dialog" *ngIf="showForm">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        {{ formMode==='new' ? 'New Contra' : formMode==='edit' ? 'Edit Contra' : 'View Contra' }}
+        <button class="x" (click)="showForm=false">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <form [formGroup]="contraForm" class="hdr">
+          <div class="row">
+            <label>Contra No <input formControlName="contraNo" [readonly]="formMode!=='new'"></label>
+            <label>Date <input type="date" formControlName="contraDate" [readonly]="formMode==='view'"></label>
+            <label>Party
+              <select formControlName="party" (change)="onPartyChanged()" [disabled]="formMode==='view'">
+                <option value="" disabled>Select…</option>
+                <option *ngFor="let p of parties" [value]="p.code">{{ p.code }} — {{ p.name }}</option>
+              </select>
+            </label>
+            <label>Party Name <input formControlName="partyName" readonly></label>
+
+            <label>Currency
+              <select formControlName="currency" [disabled]="formMode==='view'">
+                <option>MYR</option><option>USD</option><option>SGD</option>
+              </select>
+            </label>
+            <label>Status
+              <select formControlName="status" [disabled]="formMode==='view'">
+                <option>POSTED</option><option>DRAFT</option><option>VOID</option>
+              </select>
+            </label>
+            <label class="wide">Narration <input formControlName="narration" [readonly]="formMode==='view'"></label>
+          </div>
+        </form>
+
+        <div class="cards">
+          <div class="card">
+            <div class="card-head">Open A/R Invoices</div>
+            <div class="tablewrap">
+              <table>
+                <thead><tr><th>Doc No</th><th>Date</th><th>Description</th><th class="r">Outstanding</th><th class="c"></th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let d of openAR">
+                    <td>{{ d.docNo }}</td><td>{{ d.date }}</td><td>{{ d.description }}</td>
+                    <td class="r">{{ d.outstanding | number:'1.2-2' }}</td>
+                    <td class="c"><button class="btn" (click)="addFromAR(d)" [disabled]="formMode==='view'"><span class="ico plus"></span></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">Open A/P Bills</div>
+            <div class="tablewrap">
+              <table>
+                <thead><tr><th>Doc No</th><th>Date</th><th>Description</th><th class="r">Outstanding</th><th class="c"></th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let d of openAP">
+                    <td>{{ d.docNo }}</td><td>{{ d.date }}</td><td>{{ d.description }}</td>
+                    <td class="r">{{ d.outstanding | number:'1.2-2' }}</td>
+                    <td class="c"><button class="btn" (click)="addFromAP(d)" [disabled]="formMode==='view'"><span class="ico plus"></span></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="lines">
+          <div class="lines-head">
+            <div class="title">Knock Off Lines</div>
+            <div class="actions">
+              <button class="btn" (click)="autoAllocate()" [disabled]="formMode==='view' || !currentParty"><span class="ico refresh"></span> Auto allocate</button>
+            </div>
+          </div>
+
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th><th>Doc No</th><th>Date</th><th>Description</th>
+                  <th class="r">Amount</th><th class="c"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let fg of linesFA.controls; let i = index" [formGroup]="fg">
+                  <td><select formControlName="type" [disabled]="formMode==='view'"><option>AR</option><option>AP</option></select></td>
+                  <td><input formControlName="docNo" [readonly]="formMode==='view'"></td>
+                  <td><input type="date" formControlName="date" [readonly]="formMode==='view'"></td>
+                  <td><input formControlName="description" [readonly]="formMode==='view'"></td>
+                  <td class="r"><input type="number" step="0.01" formControlName="amount" (input)="onAmountChanged()" [readonly]="formMode==='view'"></td>
+                  <td class="c"><button class="btn btn-danger" (click)="removeLine(i)" [disabled]="formMode==='view'"><span class="ico trash"></span></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals">
+            <div class="row"><span>Total AR</span><strong>{{ contraForm.get('totalAR')?.value | number:'1.2-2' }}</strong></div>
+            <div class="row"><span>Total AP</span><strong>{{ contraForm.get('totalAP')?.value | number:'1.2-2' }}</strong></div>
+            <div class="row grand" [class.bad]="contraForm.get('difference')?.value !== 0">
+              <span>Difference</span><strong>{{ contraForm.get('difference')?.value | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" (click)="showForm=false">Close</button>
+        <button *ngIf="formMode!=='view'" class="btn primary" (click)="saveEntry()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Find -->
+  <div class="dialog" *ngIf="showFind">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        Find Contra
+        <button class="x" (click)="showFind=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="findForm" class="grid3">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Party
+            <select formControlName="party">
+              <option value="">Any</option>
+              <option *ngFor="let p of parties" [value]="p.code">{{ p.code }} — {{ p.name }}</option>
+            </select>
+          </label>
+        </form>
+        <div class="dialog-foot">
+          <button class="btn btn-primary" (click)="runFind()">Search</button>
+        </div>
+
+        <table *ngIf="findResults.length">
+          <thead><tr><th>Date</th><th>Contra No</th><th>Party</th><th class="r">AR</th><th class="r">AP</th><th class="r">Diff</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of findResults">
+              <td>{{ r.contraDate }}</td><td>{{ r.contraNo }}</td>
+              <td>{{ r.party }} — {{ r.partyName }}</td>
+              <td class="r">{{ r.totalAR | number:'1.2-2' }}</td>
+              <td class="r">{{ r.totalAP | number:'1.2-2' }}</td>
+              <td class="r" [class.bad]="r.difference!==0">{{ r.difference | number:'1.2-2' }}</td>
+              <td><button class="btn primary" (click)="pickFromFind(r)">Select</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Listing -->
+  <div class="dialog" *ngIf="showPrint">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        A/R and A/P Contra Listing
+        <button class="x" (click)="showPrint=false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <form [formGroup]="printForm" class="grid4">
+          <label>From <input type="date" formControlName="from"></label>
+          <label>To <input type="date" formControlName="to"></label>
+          <label>Party
+            <select formControlName="party">
+              <option value="">Any</option>
+              <option *ngFor="let p of parties" [value]="p.code">{{ p.code }} — {{ p.name }}</option>
+            </select>
+          </label>
+          <label>Sort by
+            <select formControlName="sort">
+              <option value="contraDate">Date</option>
+              <option value="contraNo">Contra No</option>
+              <option value="party">Party</option>
+              <option value="difference">Difference</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="dialog-actions">
+          <button class="btn primary" (click)="showPreview=true">Preview</button>
+        </div>
+
+        <div class="preview" *ngIf="showPreview">
+          <h3>Contra Listing (Preview)</h3>
+          <table>
+            <thead><tr><th>Date</th><th>No</th><th>Party</th><th class="r">AR</th><th class="r">AP</th><th class="r">Diff</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let n of buildListing()">
+                <td>{{ n.contraDate }}</td>
+                <td>{{ n.contraNo }}</td>
+                <td>{{ n.party }} — {{ n.partyName }}</td>
+                <td class="r">{{ n.totalAR | number:'1.2-2' }}</td>
+                <td class="r">{{ n.totalAP | number:'1.2-2' }}</td>
+                <td class="r" [class.bad]="n.difference!==0">{{ n.difference | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

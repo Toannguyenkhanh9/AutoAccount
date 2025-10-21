@@ -1,0 +1,240 @@
+<div class="page-wrap">
+  <div class="login-box">
+    <!-- Header -->
+    <div class="header">
+      <h1>AutoCount Accounting Login</h1>
+    </div>
+
+    <div class="banner"></div>
+
+    <!-- Nếu có DB thì show bảng; không thì show nút tạo -->
+    <ng-container *ngIf="(listserver?.length ?? 0) > 0; else emptyState">
+      <div class="table-card">
+        <div class="table-section">
+          <table id="companyTable">
+            <thead>
+              <tr>
+                <th>Company Name</th>
+                <th>Remark</th>
+                <th>Version</th>
+                <th>Server</th>
+                <th>Database Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let c of listserver; let i = index"
+                (click)="onSelectCompany(i)"
+                [class.selected]="i === selectedCompanyIndex"
+              >
+                <td>{{ c.Company }}</td>
+                <td>{{ c.Remark }}</td>
+                <td>{{ c.Version }}</td>
+                <td>{{ c.Server }}</td>
+                <td>{{ c.Database }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <div class="empty-title">No databases found</div>
+        <div class="empty-sub">Create a new account book to get started.</div>
+        <button class="btn primary" type="button" (click)="onCreateDatabase()">
+          Create Database
+        </button>
+      </div>
+    </ng-template>
+
+    <!-- Form đăng nhập chỉ hiển thị khi có DB -->
+    <ng-container *ngIf="(listserver?.length ?? 0) > 0">
+      <form
+        class="form-section"
+        [formGroup]="loginForm"
+        novalidate
+        (ngSubmit)="submit()"
+      >
+        <ng-container *ngIf="hasError">
+          <div class="alert-danger-soft" role="alert" aria-live="assertive">
+            <span class="ads-icon" aria-hidden="true">!</span>
+            <span>User ID or Password is incorrect</span>
+          </div>
+        </ng-container>
+
+        <div class="form-grid">
+          <label for="sysdate" class="form-label">System Date:</label>
+          <select
+            id="sysdate"
+            class="form-select"
+            [(ngModel)]="systemDate"
+            name="sysdate"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option *ngFor="let d of systemDates" [ngValue]="d">{{ d }}</option>
+          </select>
+          <div class="error-cell"></div>
+
+          <div class="form-note-row">
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/747/747376.png"
+              alt="user"
+            />
+            <div class="form-note">Enter your user ID and password.</div>
+          </div>
+
+          <label class="form-label">User ID:</label>
+          <input
+            class="form-input"
+            formControlName="username"
+            autocomplete="off"
+            [ngClass]="{
+              'is-invalid':
+                loginForm.controls['username'].invalid &&
+                loginForm.controls['username'].touched,
+              'is-valid':
+                loginForm.controls['username'].valid &&
+                loginForm.controls['username'].touched
+            }"
+          />
+          <div class="error-cell">
+            <ng-container
+              *ngIf="
+                loginForm.controls['username'].dirty ||
+                loginForm.controls['username'].touched
+              "
+            >
+              <div
+                class="field-error-inline"
+                *ngIf="loginForm.controls['username'].hasError('required')"
+              >
+                <span class="fe-icon">!</span
+                ><span class="fe-text">Username is required</span>
+              </div>
+            </ng-container>
+          </div>
+
+          <label class="form-label">Password:</label>
+          <input
+            class="form-input"
+            type="password"
+            formControlName="password"
+            autocomplete="off"
+            [ngClass]="{
+              'is-invalid':
+                loginForm.controls['password'].invalid &&
+                loginForm.controls['password'].touched,
+              'is-valid':
+                loginForm.controls['password'].valid &&
+                loginForm.controls['password'].touched
+            }"
+          />
+          <div class="error-cell">
+            <ng-container
+              *ngIf="
+                loginForm.controls['password'].dirty ||
+                loginForm.controls['password'].touched
+              "
+            >
+              <div
+                class="field-error-inline"
+                *ngIf="loginForm.controls['password'].hasError('required')"
+              >
+                <span class="fe-icon">!</span
+                ><span class="fe-text">Password is required</span>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn btn-solid"
+            [disabled]="loginForm.invalid"
+          >
+            <ng-container *ngIf="isLoading$ | async; else labelLogin">
+              <span class="indicator-progress"
+                >Please wait…
+                <span
+                  class="spinner-border spinner-border-sm align-middle ms-2"
+                ></span>
+              </span>
+            </ng-container>
+            <ng-template #labelLogin>Login</ng-template>
+          </button>
+        </div>
+
+        <a href="#" class="options-link">Options</a>
+      </form>
+    </ng-container>
+  </div>
+</div>
+
+<!-- POPUP: Nhập setup code -->
+<div class="dialog" *ngIf="showCodeDialog">
+  <div class="dialog-panel-small">
+    <div class="dialog-title">
+      Enter Setup Code
+      <button class="x" (click)="closeCodeDialog()" aria-label="Close">
+        &times;
+      </button>
+    </div>
+
+    <form [formGroup]="codeForm" class="dialog-body">
+      <label
+        >Please enter the Setup Code to create new Account Book
+        <input type="password" formControlName="code" autocomplete="off" />
+      </label>
+
+      <div class="field-error-inline" *ngIf="codeError">
+        <span class="fe-icon">!</span
+        ><span class="fe-text">{{ codeError }}</span>
+      </div>
+    </form>
+
+    <div class="dialog-actions">
+      <button class="btn" (click)="closeCodeDialog()">Cancel</button>
+      <button
+        class="btn primary"
+        (click)="confirmSetupCode()"
+        [disabled]="codeForm.invalid"
+      >
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+<div class="dialog" *ngIf="showSetupNewDb">
+  <div class="dialog-panel" style="min-height: 880px; overflow: auto">
+    <div class="dialog-title">
+       Create Account Book
+      <button
+        class="x"
+        (click)="closeCodeDialogSetupNewDb()"
+        aria-label="Close"
+      >
+        &times;
+      </button>
+    </div>
+    <div class="dialog-body">
+      <app-config-new-db (cancel)="closeCodeDialogSetupNewDb()"></app-config-new-db>
+    </div>
+  </div>
+</div>
+<div class="dialog" *ngIf="showSelectServerDialog">
+  <div class="dialog-panel-small">
+    <div class="dialog-title">
+      Please select a database
+      <button class="x" (click)="closeSelectServerDialog()" aria-label="Close">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <p>You need to select a company/server from the list before logging in.</p>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn primary" (click)="closeSelectServerDialog()">OK</button>
+    </div>
+  </div>
+</div>

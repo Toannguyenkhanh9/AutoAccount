@@ -1,0 +1,154 @@
+<div class="page">
+  <!-- Header -->
+  <div class="titlebar">
+    <h1>Cash Book Entry</h1>
+
+    <div class="toolbar">
+      <select class="filter" [(ngModel)]="typeFilter">
+        <option>All</option>
+        <option>Receipt</option>
+        <option>Payment</option>
+      </select>
+
+      <input class="search" [(ngModel)]="q" placeholder="Search type / doc no / cash book / payer / payee / desc..." />
+
+      <button class="btn" (click)="onNew()">New</button>
+      <button class="btn" [disabled]="!selected" (click)="onEdit()">Edit</button>
+      <button class="btn danger" [disabled]="!selected" (click)="onDelete()">Delete</button>
+      <button class="btn" (click)="onRefresh()">Refresh</button>
+      <button class="btn" (click)="onPrint()">Print</button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="gridwrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:100px">Type</th>
+          <th style="width:140px">Doc No</th>
+          <th style="width:120px">Doc Date</th>
+          <th>Cash/Bank</th>
+          <th>Payer / Payee</th>
+          <th>Description</th>
+          <th class="text-center" style="width:80px">Curr</th>
+          <th class="text-end" style="width:110px">Rate</th>
+          <th class="text-end" style="width:130px">Amount</th>
+          <th class="text-end" style="width:140px">Local Amount</th>
+          <th class="text-center" style="width:90px">Posted</th>
+          <th class="text-center" style="width:110px">Reconciled</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let r of filtered(); trackBy: trackById"
+            (click)="pick(r)"
+            [class.active]="isPicked(r)">
+          <td>
+            <span class="pill" [class.receipt]="r.type==='Receipt'" [class.payment]="r.type==='Payment'">{{ r.type }}</span>
+          </td>
+          <td class="monospace">{{ r.docNo }}</td>
+          <td>{{ r.docDate }}</td>
+          <td>{{ r.cashBook }}</td>
+          <td>{{ r.payerPayee }}</td>
+          <td class="cut">{{ r.description }}</td>
+          <td class="text-center">{{ r.currency }}</td>
+          <td class="text-end">{{ r.rate | number:'1.2-4' }}</td>
+          <td class="text-end">{{ r.amount | number:'1.2-2' }}</td>
+          <td class="text-end"><b>{{ r.localAmount | number:'1.2-2' }}</b></td>
+          <td class="text-center">
+            <span class="pill" [class.ok]="r.posted==='Yes'" [class.bad]="r.posted==='No'">{{ r.posted }}</span>
+          </td>
+          <td class="text-center">
+            <span class="pill" [class.ok]="r.reconciled==='Yes'" [class.bad]="r.reconciled==='No'">{{ r.reconciled }}</span>
+          </td>
+        </tr>
+      </tbody>
+
+      <tfoot>
+        <tr>
+          <td colspan="9" class="text-end"><b>Total Local</b></td>
+          <td class="text-end"><b>{{ totalLocal() | number:'1.2-2' }}</b></td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="footer">Records: {{ filtered().length }}</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-layer" *ngIf="showModal">
+  <div class="modal-panel" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">{{ isEdit ? 'Edit Cash Book Entry' : 'New Cash Book Entry' }}</div>
+      <button class="x" (click)="close()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form">
+        <label>Type</label>
+        <select class="inp" [(ngModel)]="form.type">
+          <option>Receipt</option>
+          <option>Payment</option>
+        </select>
+
+        <label>Document No</label>
+        <input class="inp" [(ngModel)]="form.docNo" placeholder="e.g. CR-202408-0001 / PV-202408-0001" />
+
+        <label>Document Date</label>
+        <input class="inp" type="date" [(ngModel)]="form.docDate" />
+
+        <label>Cash/Bank Account</label>
+        <select class="inp" [(ngModel)]="form.cashBook">
+          <option *ngFor="let c of cashBooks" [value]="c">{{ c }}</option>
+        </select>
+
+        <label>Payer / Payee</label>
+        <input class="inp" [(ngModel)]="form.payerPayee" placeholder="Customer / Supplier / Person" />
+
+        <label>Description</label>
+        <input class="inp" [(ngModel)]="form.description" placeholder="Narration..." />
+
+        <label>Reference</label>
+        <input class="inp" [(ngModel)]="form.reference" placeholder="Optional" />
+
+        <label>Currency</label>
+        <select class="inp" [(ngModel)]="form.currency" (change)="onCurrencyChange()">
+          <option value="MYR">MYR</option>
+          <option value="USD">USD</option>
+        </select>
+
+        <label>Rate</label>
+        <input class="inp" type="number" step="0.0001" [(ngModel)]="form.rate" (input)="recomputeLocal()" />
+
+        <label>Amount</label>
+        <input class="inp" type="number" step="0.01" [(ngModel)]="form.amount" (input)="recomputeLocal()" />
+
+        <label>Local Amount</label>
+        <input class="inp" type="number" step="0.01" [(ngModel)]="form.localAmount" readonly />
+
+        <label>Posted</label>
+        <select class="inp" [(ngModel)]="form.posted">
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+
+        <label>Reconciled</label>
+        <select class="inp" [(ngModel)]="form.reconciled">
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+
+        <label>Remark</label>
+        <input class="inp" [(ngModel)]="form.remark" placeholder="Optional" />
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn ghost" (click)="close()">Cancel</button>
+      <button class="btn primary" (click)="save()">Save</button>
+    </div>
+  </div>
+</div>

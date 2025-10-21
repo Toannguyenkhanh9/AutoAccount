@@ -1,0 +1,77 @@
+:host { display:block; }
+
+/* 2 cột: icons + reports */
+.customer-wrap{
+  display:grid;
+  grid-template-columns: 1fr 360px;
+  gap:16px;
+  min-height: 420px;
+}
+
+/* ICON GRID */
+.icons { background:#fff; border:1px solid #e5e7eb; border-radius:12px; }
+.icons-grid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 22px 26px;
+  padding: 14px;
+}
+.icon{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding: 10px 8px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#fff;
+  cursor:pointer;
+}
+.icon:hover{ background:#f7fbff; border-color:#dbe7f9; }
+.ico-badge{
+  width:56px; height:56px;
+  display:grid; place-items:center;
+  border-radius:8px;
+  background:#eaf1ff;
+  border:1px solid #c7dafb;
+  box-shadow:0 1px 0 #fff inset, 0 2px 4px rgba(0,0,0,.06);
+  color:#2962d4; font-weight:800;
+}
+.icon .label{
+  font-size:12px; color:#3b465a;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width: 110px;
+}
+@media (max-width:1400px){ .icons-grid{ grid-template-columns: repeat(5,minmax(110px,1fr)); } }
+@media (max-width:1200px){ .icons-grid{ grid-template-columns: repeat(4,minmax(110px,1fr)); } }
+@media (max-width:992px){  .customer-wrap{ grid-template-columns: 1fr; } }
+
+/* REPORTS ASIDE */
+.reports{
+  border:1px solid #dfe6f4; background:#fff; border-radius:12px;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.reports-head{
+  padding:10px 12px; font-weight:800; color:#123e8f;
+  background:#eef4ff; border-bottom:1px solid #dfe6f4;
+}
+.reports-list{
+  padding:8px 10px; overflow:auto;
+  max-height: 560px; /* scroll khi nhiều */
+}
+.report-item{
+  display:flex; gap:10px; align-items:flex-start;
+  width:100%; text-align:left; background:#fff; border:0;
+  padding:8px; border-radius:8px; cursor:pointer;
+}
+.report-item:hover{ background:#f6f9ff; }
+.rep-ico{
+  width:18px; height:20px; border:1px solid #f0c97a;
+  background:#ffe8b3; border-radius:3px; box-shadow:0 1px 0 #fff inset;
+}
+.rep-title{ color:#0f2547; }
+
+/* chống text bị bôi đen khi click */
+.icon, .report-item, .ico-badge, .rep-ico, .rep-title {
+  user-select: none;
+}

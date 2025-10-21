@@ -1,0 +1,16 @@
+//
+// NgbDatepicker plugin customization: https://ng-bootstrap.github.io/#/components/datepicker
+//
+
+// Fix form-floating override style of ngbDatepicker
+.form-floating {
+  .ngb-dp-navigation-select > .form-select {
+    padding: 0 0.5rem !important;
+  }
+}
+
+ngb-datepicker {
+  .ngb-dp-navigation-select > .form-select {
+    background-position: right 0.2rem center;
+  }
+}
