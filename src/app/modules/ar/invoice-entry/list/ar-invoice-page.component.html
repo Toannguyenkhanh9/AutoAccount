@@ -45,6 +45,7 @@
             *ngFor="let inv of paged"
             (click)="toggleSelect(inv)"
             [class.selected]="selected === inv"
+            [class.overdue]="isOverdue(inv)"
           >
             <td>{{ inv.docNo }}</td>
             <td>{{ inv.docDate }}</td>
@@ -171,6 +172,9 @@
                 🔎
               </button>
             </div>
+            <div class="err" *ngIf="isInvalid('debtor')">
+              Please select a debtor.
+            </div>
           </label>
 
           <label
@@ -206,7 +210,16 @@
                 formControlName="docNo"
                 [readonly]="invForm.value.autoNumbering || formMode !== 'new'"
                 placeholder="&lt;&lt;new&gt;&gt;"
+                [class.invalid]="isInvalid('docNo')"
               />
+            </div>
+            <div class="err" *ngIf="isInvalid('docNo')">
+              <ng-container *ngIf="invForm.get('docNo')?.errors?.pattern">
+                Only letters, numbers, '-', '_' and '/' are allowed.
+              </ng-container>
+              <ng-container *ngIf="invForm.get('docNo')?.errors?.duplicate">
+                This invoice number already exists.
+              </ng-container>
             </div>
           </label>
 
@@ -234,7 +247,11 @@
 
           <label
             >Due Date
-            <input type="date" formControlName="dueDate" [readonly]="true"
+            <input
+              style="background-color: rgb(251 241 241)"
+              type="date"
+              formControlName="dueDate"
+              [readonly]="true"
           /></label>
 
           <!-- Document description (ghi nhớ lần gần nhất) -->
@@ -374,7 +391,7 @@
           <button
             *ngIf="formMode !== 'view'"
             class="btn primary"
-            (click)="saveInvoice()"
+            (click)="saveInvoice()" [disabled]="invForm.invalid"
           >
             Save
           </button>
@@ -441,7 +458,6 @@
               <td>{{ r.docNo }}</td>
               <td>{{ r.debtor }} — {{ r.debtorName }}</td>
               <td class="r">{{ r.grandTotal | number : "1.2-2" }}</td>
-              <td>{{ r.status }}</td>
               <td>
                 <button class="btn btn-primary" (click)="pickFromFind(r)">
                   Select
@@ -522,7 +538,6 @@
                 <td class="r">{{ x.subTotal | number : "1.2-2" }}</td>
                 <td class="r">{{ x.taxTotal | number : "1.2-2" }}</td>
                 <td class="r">{{ x.grandTotal | number : "1.2-2" }}</td>
-                <td>{{ x.status }}</td>
               </tr>
             </tbody>
           </table>
@@ -544,7 +559,7 @@
           class="search1"
           [(ngModel)]="debtorQuery"
           (ngModelChange)="filterDebtors()"
-          placeholder="Search code / name  …"
+          placeholder="Search Debtor A/C, Company Name..."
         />
       </div>
       <div class="gridwrap">

@@ -7,6 +7,8 @@ import {
   FormGroup,
   ReactiveFormsModule,
   Validators,
+  AbstractControl,
+  ValidatorFn,
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { AmountInputDirective } from 'src/app/_shared/directives';
@@ -45,7 +47,6 @@ interface Invoice {
   rate: number;
   description?: string;
   agent?: string;
-  status: Status;
   lines: InvoiceLine[];
   subTotal: number;
   taxTotal: number;
@@ -168,7 +169,7 @@ export class ArInvoicePageComponent implements OnInit {
   ];
   creditTerms: Option[] = [
     { code: 'N0', name: 'Cash' },
-    { code: 'N0', name: 'C.OD' },
+    { code: 'N0', name: 'C.O.D' },
     { code: 'N7', name: '7 Days' },
     { code: 'N14', name: '14 Days' },
     { code: 'N30', name: '30 Days' },
@@ -296,21 +297,21 @@ export class ArInvoicePageComponent implements OnInit {
         { item: 'IPH-14P-256', qty: 1 },
         { item: 'CASE-01', qty: 2 },
       ],
-      'OPEN'
+      '2025-12-07'
     ),
     this.mkInvoice(
       'INV-0002',
       '2025-08-05',
       '300-C001',
       [{ item: 'S24U-512', qty: 1 }],
-      'OPEN'
+      '2025-11-07'
     ),
     this.mkInvoice(
       'INV-0003',
       '2025-08-07',
       '300-D001',
       [{ item: 'A54-128', qty: 3 }],
-      'POSTED'
+      '2025-10-07'
     ),
   ];
 
@@ -323,13 +324,12 @@ export class ArInvoicePageComponent implements OnInit {
     date: string,
     debtor: string,
     lines: Array<{ item: string; qty: number }>,
-    status: Status
+    dueDate: string
   ): Invoice {
     const debtorName =
       this.debtors.find((d) => d.debtorAccount === debtor)?.companyName ||
       debtor;
     const docDate = date;
-    const dueDate = this.addDays(docDate, 30);
     const dets: InvoiceLine[] = lines.map((l) => {
       const itm = this.items.find((i) => i.code === l.item)!;
       const amount = +(l.qty * itm.price).toFixed(2);
@@ -360,12 +360,11 @@ export class ArInvoicePageComponent implements OnInit {
       rate: 1,
       description: 'SALE',
       agent: '',
-      status,
       lines: dets,
       subTotal,
       taxTotal,
       grandTotal,
-      outstanding: status === 'POSTED' ? 0 : grandTotal,
+      outstanding: grandTotal,
     };
   }
   private addDays(dateISO: string, d: number) {
@@ -414,12 +413,12 @@ export class ArInvoicePageComponent implements OnInit {
   buildForms() {
     this.invForm = this.fb.group({
       // header
-      debtor: [''],
+      debtor: ['', Validators.required],
       journalType: ['SALES'],
       agent: [''],
       ref2: [''],
       autoNumbering: [true], // điều khiển Invoice No
-      docNo: [''],
+      docNo: ['', Validators.required],
       docDate: [this.todayYMD()],
       terms: ['N30'],
       dueDate: [this.addDaysYMD(new Date(), 30)],
@@ -646,6 +645,7 @@ export class ArInvoicePageComponent implements OnInit {
       subTotal: 0,
       taxTotal: 0,
       grandTotal: 0,
+      outstanding: 0,
       journalType: jtDefault,
       terms: termsDefault,
     });
@@ -681,10 +681,10 @@ export class ArInvoicePageComponent implements OnInit {
       rate: inv.rate,
       description: inv.description,
       agent: inv.agent,
-      status: inv.status,
       subTotal: inv.subTotal,
       taxTotal: inv.taxTotal,
       grandTotal: inv.grandTotal,
+      outstanding: inv.grandTotal,
     });
     this.acLinesFA.clear();
     // map tạm: mô tả lấy description, số tiền lấy total (hoặc amount tùy bạn)
@@ -699,7 +699,30 @@ export class ArInvoicePageComponent implements OnInit {
       this.acLinesFA.push(fg);
     });
   }
+  submitted = false;
+
+  /** Doc No validator:
+   *  - Cho phép rỗng (để auto)
+   *  - Nếu có giá trị: chỉ cho [A–Z,a–z,0–9,-,_ ,/]
+   *  - Không được trùng với invoice đã có
+   */
+  docNoValidator: ValidatorFn = (ctrl: AbstractControl) => {
+    const v = (ctrl.value ?? '').trim();
+    if (!v) return null; // rỗng = dùng auto, hợp lệ
+    if (!/^[A-Za-z0-9\-_\/]+$/.test(v)) return { pattern: true };
+    const dup = this.invoices.some(
+      (x) => (x.docNo || '').toLowerCase() === v.toLowerCase()
+    );
+    return dup ? { duplicate: true } : null;
+  };
+
+  isInvalid(name: string): boolean {
+    const c = this.invForm?.get(name);
+    return !!(c && c.invalid && (c.touched || this.submitted));
+  }
   saveInvoice() {
+    this.submitted = true;
+    if (this.invForm.invalid) return; // chặn Save nếu form lỗi
     localStorage.setItem(
       'ar_inv_last_desc',
       this.invForm.value.description || ''
@@ -757,12 +780,11 @@ export class ArInvoicePageComponent implements OnInit {
       rate: fv.rate,
       description: fv.description,
       agent: fv.agent,
-      status: fv.status,
       lines,
       subTotal,
       taxTotal,
       grandTotal,
-      outstanding: fv.status === 'POSTED' ? 0 : grandTotal,
+      outstanding: grandTotal,
     };
   }
 
@@ -792,7 +814,7 @@ export class ArInvoicePageComponent implements OnInit {
       const dt = new Date(x.docDate);
       const inDate = (!from || dt >= from) && (!to || dt <= to);
       const debtHit = !f.debtor || x.debtor === f.debtor;
-      const statusHit = f.status === 'all' || x.status === f.status;
+      const statusHit = f.status === 'all';
       const amtHit =
         (!min || x.grandTotal >= min) && (!max || x.grandTotal <= max);
       return inDate && debtHit && statusHit && amtHit;
@@ -819,7 +841,7 @@ export class ArInvoicePageComponent implements OnInit {
         const dt = new Date(x.docDate);
         const inDate = (!from || dt >= from) && (!to || dt <= to);
         const debtHit = !f.debtor || x.debtor === f.debtor;
-        const statusHit = status === 'all' || x.status === status;
+        const statusHit = status === 'all';
         return inDate && debtHit && statusHit;
       })
       .sort((a, b) =>
@@ -873,7 +895,7 @@ export class ArInvoicePageComponent implements OnInit {
         type: i % 2 ? 'CN' : 'RP',
         no: (i % 2 ? 'CN-' : 'OR-') + (10000 + seed * 10 + i),
         description: i % 2 ? 'Credit note applied' : 'Official receipt',
-        date: d.toISOString().slice(0, 10),
+        date: d.toLocaleDateString(),
         amount: +(inv.grandTotal / (base + 1 - i)).toFixed(2),
       });
     }

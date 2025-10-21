@@ -193,6 +193,20 @@ tbody tr.overdue:not(.selected) td.r {
 tbody tr.overdue:not(.selected) td:nth-last-child(2) { /* cột Outstanding nếu là cột áp chót */
   color: #b91c1c;
 }
+tr.overdue td {        /* tô cả dòng */
+  color: #b91c1c;      /* đỏ */
+  font-weight: 600;
+}
+td.neg {               /* nếu chỉ muốn mỗi ô Outstanding */
+  color: #b91c1c;
+  font-weight: 600;
+}
+input.invalid, select.invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+}
+.err { color:#b91c1c; font-size:.85rem; margin-top:4px; }
+.with-search { display:flex; gap:8px; align-items:center; }
 
 
 
