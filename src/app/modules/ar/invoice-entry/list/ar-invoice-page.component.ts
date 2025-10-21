@@ -291,7 +291,7 @@ export class ArInvoicePageComponent implements OnInit {
   invoices: Invoice[] = [
     this.mkInvoice(
       'INV-0001',
-      '2025-08-01',
+      '10/9/2025',
       '300-B001',
       [
         { item: 'IPH-14P-256', qty: 1 },
@@ -301,14 +301,14 @@ export class ArInvoicePageComponent implements OnInit {
     ),
     this.mkInvoice(
       'INV-0002',
-      '2025-08-05',
+      '8/6/2025',
       '300-C001',
       [{ item: 'S24U-512', qty: 1 }],
       '2025-11-07'
     ),
     this.mkInvoice(
       'INV-0003',
-      '2025-08-07',
+      '10/7/2025',
       '300-D001',
       [{ item: 'A54-128', qty: 3 }],
       '2025-10-07'
