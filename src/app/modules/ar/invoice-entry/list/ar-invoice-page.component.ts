@@ -168,11 +168,12 @@ export class ArInvoicePageComponent implements OnInit {
     },
   ];
   creditTerms: Option[] = [
-    { code: 'N0', name: 'Cash' },
     { code: 'N0', name: 'C.O.D' },
-    { code: 'N7', name: '7 Days' },
-    { code: 'N14', name: '14 Days' },
-    { code: 'N30', name: '30 Days' },
+    { code: 'N30', name: '5% 7, Net 30 days' },
+    { code: 'N45', name: 'Net 45 days' },
+    { code: 'N60', name: 'Net 60 days' },
+    { code: 'N90', name: 'Net 90 days' },
+    { code: 'N30', name: 'Net 31th Next Month' },
   ];
   journalTypes: JournalType[] = [
     {
@@ -635,7 +636,7 @@ export class ArInvoicePageComponent implements OnInit {
     this.invForm.reset({
       docNo: this.nextNumber(),
       docDate: this.today(),
-      dueDate: this.addDays(this.today(), 30),
+      dueDate: this.addDays(this.today(), 0),
       debtor: '',
       debtorName: '',
       currency: 'MYR',

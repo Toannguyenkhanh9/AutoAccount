@@ -7,7 +7,7 @@ export const environment = {
   debug: true,
   appVersion: 'v1.0.0',
   apiKey: 'c3fc0521-1562-46db-ba86-178178de3560',
-  apiUrl: 'https://localhost:6001',
+  apiUrl: 'https://acc.ems79.com',
   // apiUrl: 'https://api-ad2.advg.fyi',
   // apiUrl: 'https://api-ad2.teslah.fyi',
   notificationApiUrl: '',
