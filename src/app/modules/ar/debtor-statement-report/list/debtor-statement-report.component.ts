@@ -1,169 +1,548 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, HostListener, computed, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { FormsModule } from '@angular/forms';
 
-type DocType = 'INV' | 'DN' | 'CN' | 'PAY'; // invoice, debit note, credit note, receive payment
-
-interface Txn {
-  debtorCode: string;
-  debtorName: string;
-  date: string;       // ISO yyyy-MM-dd
-  docType: DocType;
+type Line = {
+  date: string; // yyyy-mm-dd
   docNo: string;
+  refNo?: string;
+  type: string; // OR / CON / etc…
   description: string;
-  debit: number;      // local currency
-  credit: number;     // local currency
-}
-
-interface StatementLine {
-  date: string;
-  docNo: string;
-  description: string;
+  chequeNo?: string;
+  currency?: string;
   debit: number;
   credit: number;
-  balance: number; // running balance after line
-}
+  runBalance: number; // running balance inside the doc
+};
 
-interface Statement {
-  debtorKey: string; // "code — name"
-  opening: number;
-  lines: StatementLine[];
-  totals: { debit: number; credit: number; closing: number };
+type DocumentRow = {
+  docDate: string;
+  docNo: string;
+  docType: string; // IN / DN / OR / BF…
+  description: string;
+  chequeNo?: string;
+  currency: string;
+  debit: number;
+  credit: number;
+  balance: number; // doc-level balance
+  lines: Line[];
+  expanded?: boolean;
+};
+
+type DebtorRow = {
+  expanded?: boolean;
+  debtorCode: string;
+  debtorName: string;
+  debtorType: 'RETAIL' | 'TRADING';
+  agent: string;
+  phone: string;
+  currency: string;
+  balance: number;
+  documents: DocumentRow[];
+};
+
+type Dir = 'asc' | 'desc';
+interface SortState {
+  key: string;
+  dir: Dir;
 }
 
 @Component({
   selector: 'app-debtor-statement-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './debtor-statement-report.component.html',
-  styleUrls: ['./debtor-statement-report.component.scss']
+  styleUrls: ['./debtor-statement-report.component.scss'],
 })
 export class DebtorStatementReportComponent {
-  // ===== Sample data (local currency) =====
-  txns: Txn[] = [
-    // BEST PHONE SDN BHD (300-B001)
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD', date:'2025-07-01', docType:'INV', docNo:'INV-0001', description:'Opening invoice', debit:2000, credit:0},
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD', date:'2025-08-05', docType:'INV', docNo:'INV-0015', description:'Galaxy S24 Ultra', debit:3999, credit:0},
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD', date:'2025-08-10', docType:'PAY', docNo:'RC-0008', description:'Customer payment', debit:0, credit:1500},
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD', date:'2025-08-15', docType:'CN',  docNo:'CN-0003',  description:'Price discount', debit:0, credit:120},
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD', date:'2025-08-28', docType:'DN',  docNo:'DN-0006',  description:'Delivery charges', debit:80, credit:0},
+  // ===== Sort state (3 cấp) =====
+  sortLv1: SortState = { key: 'debtorCode', dir: 'asc' };
+  sortLv2: SortState = { key: 'docDate', dir: 'asc' };
+  sortLv3: SortState = { key: 'date', dir: 'asc' };
 
-    // CARE PHONE SDN BHD (300-C001)
-    {debtorCode:'300-C001',debtorName:'CARE PHONE SDN BHD', date:'2025-07-20', docType:'INV', docNo:'INV-0980', description:'Opening invoice', debit:500, credit:0},
-    {debtorCode:'300-C001',debtorName:'CARE PHONE SDN BHD', date:'2025-08-08', docType:'INV', docNo:'INV-1010', description:'Phone case', debit:49, credit:0},
-    {debtorCode:'300-C001',debtorName:'CARE PHONE SDN BHD', date:'2025-08-18', docType:'PAY', docNo:'RC-0020', description:'Full settlement', debit:0, credit:49},
-  ];
+  // ===== form =====
+  fg!: FormGroup;
 
-  // ===== Options / filter =====
-  fg: FormGroup;
-  showOptions = true;
-  showPreview = signal(false);
-
-  constructor(private fb: FormBuilder){
-    const start = '2025-08-01';
-    const end   = '2025-08-31';
+  constructor(private fb: FormBuilder) {
     this.fg = this.fb.group({
-      dateFrom: [start],
-      dateTo:   [end],
-      debtor:   [''],         // filter by code or name
-      includeZero: [false],
-      showCriteria: [true],
-      sortBy: ['date']        // date | docNo
+      dateFrom: ['2025-01-01'],
+      dateTo: ['2025-11-06'],
+
+      debtorType: ['ALL'],           // 'RETAIL' | 'TRADING' | ALL
+      statementType: ['open'],       // 'default' | 'open' | 'balancebf'
+      knockoffMode: ['normal'],      // 'normal' | 'knockoff' (placeholder)
+      sortBy: ['debtorCode'],        // 'debtorCode' | 'debtorName' | 'debtorType'
     });
+
+    // default: select all debtors
+    this.selectedDebtors = this.debtors.map((d) => d.code);
+
+    // initial data build
+    this.inquiry();
+
+    // Nếu muốn tự cập nhật khi đổi filter: bật dòng dưới
+    // this.fg.valueChanges.subscribe(() => this.inquiry());
   }
 
-  // ===== Helpers =====
-  private parse(d: string){ return new Date(d+'T00:00:00'); }
+  // ===== options (static) =====
+  debtors = [
+    { code: '300-A001', name: 'CARE PHONE SDN' },
+    { code: '300-B001', name: 'BEST PHONE SDN BHD' },
+    { code: '300-L001', name: 'LGH ENTERPRISE' },
+  ];
 
-  // ===== Prepared statements (grouped by debtor) =====
-  statements = computed<Statement[]>(() => {
-    const f = this.fg.value as any;
-    const from = this.parse(f.dateFrom);
-    const to   = this.parse(f.dateTo);
-    const q = (f.debtor ?? '').toLowerCase();
+  debtorTypes: Array<'RETAIL' | 'TRADING'> = ['RETAIL', 'TRADING'];
 
-    // group by debtor
-    const map = new Map<string, Txn[]>();
-    for (const t of this.txns) {
-      if (q && !`${t.debtorCode} ${t.debtorName}`.toLowerCase().includes(q)) continue;
-      const key = `${t.debtorCode} — ${t.debtorName}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
-    }
+  statementTypes = [
+    { value: 'default',   label: 'Debtor Default' },
+    { value: 'open',      label: 'Open Item Only' },
+    { value: 'balancebf', label: 'Balance B/F' },
+  ];
 
-    const out: Statement[] = [];
-    for (const [key, list] of map.entries()) {
-      // opening = sum of (debit - credit) for txns < from
-      let opening = 0;
-      for (const t of list) {
-        const d = this.parse(t.date);
-        if (d < from) opening += t.debit - t.credit;
+  knockoffModes = [
+    { value: 'normal',   label: 'Normal Statement' },
+    { value: 'knockoff', label: 'KnockOff Statement' },
+  ];
+
+  // ===== multi-select UI state =====
+  debtorDropOpen = false;
+  selectedDebtors: string[] = [];
+
+  get debtorSummary(): string {
+    if (this.selectedDebtors.length === 0) return 'All';
+    if (this.selectedDebtors.length === this.debtors.length) return 'All';
+    return `${this.selectedDebtors.length} selected`;
+  }
+
+  onToggleDebtor(ev: Event) {
+    ev.stopPropagation();
+    this.debtorDropOpen = !this.debtorDropOpen;
+  }
+  closeDebtor() {
+    this.debtorDropOpen = false;
+  }
+  selectAllDebtors(checked: boolean) {
+    this.selectedDebtors = checked ? this.debtors.map((d) => d.code) : [];
+  }
+  toggleDebtor(code: string, checked: boolean) {
+    if (checked) {
+      if (!this.selectedDebtors.includes(code)) {
+        this.selectedDebtors = [...this.selectedDebtors, code];
       }
+    } else {
+      this.selectedDebtors = this.selectedDebtors.filter((c) => c !== code);
+    }
+  }
+  isDebtorChecked(code: string) {
+    return this.selectedDebtors.includes(code);
+  }
 
-      // lines within [from..to]
-      const range = list.filter(t => {
-        const d = this.parse(t.date);
-        return d >= from && d <= to;
-      });
+  // close the dropdown when clicking outside
+  @HostListener('document:click')
+  handleDocClick() {
+    this.debtorDropOpen = false;
+  }
 
-      // sort by selected
-      const by = (f.sortBy as string) || 'date';
-      range.sort((a,b)=> {
-        if (by === 'docNo') return a.docNo.localeCompare(b.docNo);
-        return this.parse(a.date).getTime() - this.parse(b.date).getTime();
-      });
+  // ===== dataset (master) — sample, structured 3-level =====
+// ===== dataset (master) — BEST PHONE giống số liệu trong hình =====
+private master: DebtorRow[] = [
+  {
+    debtorCode: '300-B001',
+    debtorName: 'BEST PHONE SDN BHD',
+    debtorType: 'TRADING',
+    agent: 'TEH',
+    phone: '0925145321',
+    currency: 'MYR',
+    balance: 5819,
+    documents: [
+      // Doc cũ 2008 đã được thanh toán/đối trừ: về 0 (để thể hiện lưới như hình)
+      {
+        docDate: '2025-11-05',
+        docNo: 'INV 0801',
+        docType: 'IN',
+        description: '2025 SALES',
+        currency: 'MYR',
+        debit: 5000,
+        credit: 0,
+        balance: 0,
+        lines: [
+          // hóa đơn gốc
+          {
+            date: '2025-10-05',
+            docNo: 'OR-B00003',
+            type: 'OR',
+            description: 'Account Payment',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 0,
+            credit: 1500,
+            runBalance: 3500
+          },
+          // thanh toán như hình (OR-000003)
+          {
+            date: '2025-10-05',
+            docNo: 'JV-000004',
+            type: 'CON',
+            description: 'CONTRA',
+            chequeNo: 'ABB 12321',
+            currency: 'MYR',
+            debit: 0,
+            credit: 3500,
+            runBalance: 0
+          },
+        ],
+        expanded: false
+      },
 
-      // build running balance lines
-      let bal = opening;
-      const lines: StatementLine[] = [];
-      for (const t of range) {
-        bal += t.debit - t.credit;
-        lines.push({
-          date: t.date,
-          docNo: t.docNo,
-          description: `${t.docType} — ${t.description}`,
-          debit: t.debit,
-          credit: t.credit,
-          balance: +bal.toFixed(2),
+      // Các chứng từ 2009 còn outstanding (đúng tổng 5,819.00)
+      {
+        docDate: '2025-10-05',
+        docNo: 'DN-000001',
+        docType: 'DN',
+        description: '2009 SALES',
+        currency: 'MYR',
+        debit: 0,
+        credit: 0,
+        balance: 0,
+        lines: [
+          {
+            date: '2025-10-05',
+            docNo: 'DN-000001',
+            type: 'DN',
+            description: 'Debit Note',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 120,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      },
+      {
+        docDate: '2025-09-23',
+        docNo: 'I-000001',
+        docType: 'IN',
+        description: '2009 SALES',
+        currency: 'MYR',
+        debit: 0,
+        credit: 0,
+        balance: 0,
+        lines: [
+          {
+            date: '2025-09-23',
+            docNo: 'I-000001',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 3549,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      },
+      {
+        docDate: '2025-08-23',
+        docNo: 'I-000005',
+        docType: 'IN',
+        description: '2009 SALES',
+        currency: 'MYR',
+        debit: 0,
+        credit: 0,
+        balance: 0,
+        lines: [
+          {
+            date: '2025-08-23',
+            docNo: 'I-000005',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 2150,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      }
+    ],
+    expanded: false
+  },
+
+  // các debtor còn lại giữ nguyên như bạn đang có
+  {
+    debtorCode: '300-L001',
+    debtorName: 'LGH ENTERPRISE',
+    debtorType: 'TRADING',
+    agent: 'JLO',
+    phone: '0925145321',
+    currency: 'MYR',
+    balance: 0,
+    documents: [
+      {
+        docDate: '2025-09-23',
+        docNo: 'INV 0803',
+        docType: 'IN',
+        description: 'ACCOUNT PAYMENT',
+        currency: 'MYR',
+        debit: 0,
+        credit: 0,
+        balance: 0,
+        lines: [
+          {
+            date: '2025-09-23',
+            docNo: 'INV 0803',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 9500,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      }
+    ],
+    expanded: false
+  },
+];
+
+  // ===== working state =====
+  private _rows = signal<DebtorRow[]>([]);
+  private _viewRows = signal<DebtorRow[]>([]); // <-- data sau khi sort đa cấp
+
+  // Template gọi rows() => lấy từ _viewRows để phản ánh sort đa cấp
+  rows = computed(() => this._viewRows());
+
+  // footer totals
+  totals = computed(() => {
+    const bal = this._viewRows().reduce((s, r) => s + (r.balance || 0), 0);
+    return { balance: bal };
+  });
+
+  // ===== expand helpers =====
+  toggle(r: DebtorRow) {
+    r.expanded = !r.expanded;
+  }
+  toggleDoc(d: DocumentRow) {
+    d.expanded = !d.expanded;
+  }
+
+  // ===== main filter/sort/recalc =====
+  inquiry() {
+    const v = this.fg.getRawValue();
+    const from = this.toDate(v.dateFrom);
+    const to = this.toDate(v.dateTo);
+    const selected = new Set(
+      this.selectedDebtors.length
+        ? this.selectedDebtors
+        : this.debtors.map((d) => d.code)
+    );
+
+    // Deep clone master để không mutate nguồn
+    const cloned: DebtorRow[] = this.master.map((m) => ({
+      ...m,
+      documents: m.documents.map((d) => ({
+        ...d,
+        lines: d.lines.map((l) => ({ ...l })),
+        expanded: false,
+      })),
+      expanded: false,
+      balance: 0,
+    }));
+
+    // Filter + tính toán lại theo khoảng ngày và statement type
+    let result = cloned
+      .filter((r) => selected.has(r.debtorCode))
+      .filter((r) => v.debtorType === 'ALL' || r.debtorType === v.debtorType)
+      .filter((r) => r.documents.length > 0);
+
+    // Sort theo combo “Sort by” (level 1 mặc định)
+    const sk = v.sortBy as 'debtorCode' | 'debtorName' | 'debtorType';
+    result.sort((a, b) => ('' + a[sk]).localeCompare('' + b[sk], undefined, { numeric: true, sensitivity: 'base' }));
+
+    this._rows.set(result);
+
+    // Sau khi set dữ liệu mới => áp sort đa cấp hiện tại
+    this._recalcView();
+  }
+
+  private withinDateRangeAndRecalc(
+    r: DebtorRow,
+    from: Date,
+    to: Date,
+    statementType: 'default' | 'open' | 'balancebf'
+  ): DebtorRow {
+    let docs: DocumentRow[] = r.documents
+      .map((d) => {
+        const linesInRange = d.lines.filter((l) => {
+          const dt = this.toDate(l.date);
+          return dt >= from && dt <= to;
         });
+
+        const debit = linesInRange.reduce((s, x) => s + x.debit, 0);
+        const credit = linesInRange.reduce((s, x) => s + x.credit, 0);
+        const balance = debit - credit;
+
+        let run = 0;
+        const newLines = linesInRange.map((l) => {
+          run += l.debit - l.credit;
+          return { ...l, runBalance: run };
+        });
+
+        const doc: DocumentRow = {
+          ...d,
+          debit,
+          credit,
+          balance,
+          lines: newLines,
+          expanded: false,
+        };
+
+        return doc;
+      })
+      .filter((d) => d.lines.length > 0 || statementType === 'balancebf');
+
+    // Balance B/F
+    if (statementType === 'balancebf') {
+      const beforeDebit = r.documents.reduce(
+        (s, d) =>
+          s +
+          d.lines
+            .filter((l) => this.toDate(l.date) < from)
+            .reduce((a, b) => a + b.debit, 0),
+        0
+      );
+      const beforeCredit = r.documents.reduce(
+        (s, d) =>
+          s +
+          d.lines
+            .filter((l) => this.toDate(l.date) < from)
+            .reduce((a, b) => a + b.credit, 0),
+        0
+      );
+      const bf = beforeDebit - beforeCredit;
+      if (bf !== 0) {
+        const bfDoc: DocumentRow = {
+          docDate: this.toIso(from),
+          docNo: 'B/F',
+          docType: 'BF',
+          description: 'Balance B/F',
+          chequeNo: '',
+          currency: r.currency,
+          debit: bf > 0 ? bf : 0,
+          credit: bf < 0 ? -bf : 0,
+          balance: bf,
+          expanded: false,
+          lines: [
+            {
+              date: this.toIso(from),
+              docNo: 'B/F',
+              refNo: '',
+              type: 'BF',
+              description: 'Balance B/F',
+              chequeNo: '',
+              currency: r.currency,
+              debit: bf > 0 ? bf : 0,
+              credit: bf < 0 ? -bf : 0,
+              runBalance: bf,
+            },
+          ],
+        };
+        docs = [bfDoc, ...docs];
       }
-
-      const totalsDebit  = +range.reduce((s,x)=> s + x.debit ,0).toFixed(2);
-      const totalsCredit = +range.reduce((s,x)=> s + x.credit,0).toFixed(2);
-      const closing = +(opening + totalsDebit - totalsCredit).toFixed(2);
-
-      if (!f.includeZero) {
-        const hasMovement = lines.length > 0 || opening !== 0 || closing !== 0;
-        if (!hasMovement) continue;
-      }
-
-      out.push({
-        debtorKey: key,
-        opening: +opening.toFixed(2),
-        lines,
-        totals: { debit: totalsDebit, credit: totalsCredit, closing }
-      });
     }
 
-    // stable order by debtor code/name
-    out.sort((a,b)=> a.debtorKey.localeCompare(b.debtorKey));
-    return out;
-  });
+    // Open Item Only
+    if (statementType === 'open') {
+      docs = docs.filter((d) => d.debit - d.credit !== 0);
+    }
 
-  // ===== Grand totals over all debtors (period movement only) =====
-  grand = computed(() => {
-    const s = this.statements();
-    const d = +(s.reduce((sum,x)=> sum + x.totals.debit ,0).toFixed(2));
-    const c = +(s.reduce((sum,x)=> sum + x.totals.credit,0).toFixed(2));
-    const open = +(s.reduce((sum,x)=> sum + x.opening,0).toFixed(2));
-    const closing = +(s.reduce((sum,x)=> sum + x.totals.closing,0).toFixed(2));
-    return { opening: open, debit: d, credit: c, closing };
-  });
+    const debtorBal = docs.reduce((s, d) => s + (d.debit - d.credit), 0);
 
-  // ===== Actions =====
-  inquiry(){ this.showPreview.set(false); }
-  preview(){ this.showPreview.set(true); }
-  print(){ window.print(); }
-  toggleOptions(){ this.showOptions = !this.showOptions; }
+    return {
+      ...r,
+      documents: docs,
+      balance: debtorBal,
+    };
+  }
+
+  // ===== Sort handler cho header =====
+  onSortLv1(key: 'debtorCode' | 'debtorName' | 'debtorType' | 'balance') {
+    this.toggleDir(this.sortLv1, key);
+    this._recalcView();
+  }
+  onSortLv2(key: 'docDate' | 'docNo') {
+    this.toggleDir(this.sortLv2, key);
+    this._recalcView();
+  }
+  onSortLv3(key: 'date' | 'docNo') {
+    this.toggleDir(this.sortLv3, key);
+    this._recalcView();
+  }
+  iconLv1(key: string) { return this.sortLv1.key === key ? this.sortLv1.dir : ''; }
+  iconLv2(key: string) { return this.sortLv2.key === key ? this.sortLv2.dir : ''; }
+  iconLv3(key: string) { return this.sortLv3.key === key ? this.sortLv3.dir : ''; }
+
+  // ===== Rebuild view theo sort đa cấp =====
+  private _recalcView() {
+    // 1) Sort cấp 1 trên debtor list
+    const s1 = this.sortLv1;
+    const base = this._rows(); // <-- đọc GIÁ TRỊ signal
+    const lvl1 = [...base].sort((a, b) => this.cmp((a as any)[s1.key], (b as any)[s1.key], s1.dir));
+
+    // 2) Sort cấp 2 trong từng debtor
+    const s2 = this.sortLv2;
+    for (const r of lvl1) {
+      r.documents = [...(r.documents ?? [])].sort((a: any, b: any) =>
+        this.cmp(a[s2.key], b[s2.key], s2.dir)
+      );
+
+      // 3) Sort cấp 3 trong từng document
+      const s3 = this.sortLv3;
+      for (const d of r.documents) {
+        d.lines = [...(d.lines ?? [])].sort((a: any, b: any) =>
+          this.cmp(a[s3.key], b[s3.key], s3.dir)
+        );
+      }
+    }
+
+    // cập nhật signal để template rows() phản ánh
+    this._viewRows.set(lvl1);
+  }
+
+  // ===== utils =====
+  private toggleDir(s: SortState, key: string) {
+    if (s.key === key) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+    else { s.key = key; s.dir = 'asc'; }
+  }
+  private cmp(a: any, b: any, dir: Dir): number {
+    const mul = dir === 'asc' ? 1 : -1;
+
+    const as = typeof a === 'string' ? a : String(a ?? '');
+    const bs = typeof b === 'string' ? b : String(b ?? '');
+
+    // date?
+    const ad = Date.parse(as);
+    const bd = Date.parse(bs);
+    if (!Number.isNaN(ad) && !Number.isNaN(bd)) return mul * (ad - bd);
+
+    // number?
+    const an = typeof a === 'number' ? a : Number(as.replace(/[, ]/g, ''));
+    const bn = typeof b === 'number' ? b : Number(bs.replace(/[, ]/g, ''));
+    if (!Number.isNaN(an) && !Number.isNaN(bn)) return mul * (an - bn);
+
+    // natural string compare
+    return mul * as.localeCompare(bs, undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  private toDate(iso: string): Date {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return new Date();
+    return d;
+  }
+  private toIso(d: Date): string {
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
 }

@@ -1,172 +1,373 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, effect, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, FormGroup } from '@angular/forms';
 
-interface DocRow {
+type Bucket = {
+  cur: number;
+  m1: number;
+  m2: number;
+  m3: number;
+  m4: number;
+  over5: number;
+  balance: number;
+  totalOverDue: number;
+};
+type Txn = {
   debtorCode: string;
   debtorName: string;
-  salesAgent: string;
-  docDate: string;     // ISO yyyy-MM-dd
-  term: number;        // credit term (days)
-  currency: 'MYR'|'USD';
-  rate: number;        // to local
-  amount: number;      // foreign amount
-  outstanding: number; // foreign outstanding
-}
+  debtorType: 'RETAIL' | 'TRADING';
+  agent: string;
+  phone: string;
+  currency: string;
+  docDate: string; // yyyy-mm-dd
+  dueDate: string; // yyyy-mm-dd
+  docType: 'IN' | 'DN';
+  docNo: string;
+  amount: number; // outstanding
+  isOverDue?: boolean;
+  buckets?: Bucket;
+  runBalance?: number;
+};
 
-interface AgingLine {
+type RowView = {
+  expanded?: boolean;
   debtorCode: string;
   debtorName: string;
-  salesAgent: string;
-  current: number;
-  d1_30: number;
-  d31_60: number;
-  d61_90: number;
-  over90: number;
-  total: number;
-}
+  debtorType: 'RETAIL' | 'TRADING';
+  agent: string;
+  phone: string;
+  currency: string;
+  txns: Txn[];
+  totals: Bucket;
+};
 
 @Component({
   selector: 'app-debtor-aging-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './debtor-aging-report.component.html',
-  styleUrls: ['./debtor-aging-report.component.scss']
+  styleUrls: ['./debtor-aging-report.component.scss'],
 })
 export class DebtorAgingReportComponent {
-  // ===== Sample documents =====
-  docs: DocRow[] = [
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD',  salesAgent:'TEH',  docDate:'2025-07-20', term:30, currency:'MYR', rate:1, amount:3999, outstanding:3999},
-    {debtorCode:'300-B001',debtorName:'BEST PHONE SDN BHD',  salesAgent:'TEH',  docDate:'2025-06-10', term:30, currency:'MYR', rate:1, amount:120,  outstanding:120},
-    {debtorCode:'300-C001',debtorName:'CARE PHONE SDN BHD',  salesAgent:'FION', docDate:'2025-08-08', term:7,  currency:'MYR', rate:1, amount:49,   outstanding:49},
-    {debtorCode:'300-D001',debtorName:'DOCTOR MOBILE ZONE',  salesAgent:'JLO',  docDate:'2025-07-05', term:21, currency:'MYR', rate:1, amount:150,  outstanding:150},
-  ];
-
-  // ===== Options / form =====
-  fg: FormGroup;
-  showOptions = true;
-  showPreview = signal(false);
-
-  constructor(private fb: FormBuilder){
-    const today = new Date().toISOString().slice(0,10);
+  fg!: FormGroup;
+  constructor(private fb: FormBuilder) {
     this.fg = this.fb.group({
-      asOf: [today],
-      debtor: [''],
-      bucketSize: [30],
-      groupBy: ['none'],           // none | salesAgent
-      showCriteria: [true],
-      includeZero: [false],
+      asOf: ['2025-11-05'],
+      debtor: ['ALL'], // All
+      debtorType: ['ALL'], // All
+      agingMonths: [6], // 4 hoặc 6
+      groupBy: ['none'], // 'none' | 'debtorType'
     });
+
+    this.fg.valueChanges.subscribe(() => this.inquiry());
+    this.inquiry();
   }
 
-  // ===== Utilities =====
-  private addDays(d: Date, days: number){ const x = new Date(d); x.setDate(x.getDate()+days); return x; }
-  private daysBetween(a: Date, b: Date){ return Math.floor((+a - +b) / 86400000); }
+  // ======= Danh mục demo =======
+  debtors = [
+    { code: '300-A001', name: 'CARE PHONE SDN' },
+    { code: '300-B001', name: 'BEST PHONE SDN BHD' },
+    { code: '300-L001', name: 'LGH ENTERPRISE' },
+  ];
 
-  // ===== Filter + per-document computed =====
-  filteredDocs = computed(() => {
-    const f = this.fg.value as any;
-    const asOf = new Date(f.asOf);
-    const q = (f.debtor ?? '').toLowerCase();
+  debtorTypes: Array<'RETAIL' | 'TRADING'> = ['RETAIL', 'TRADING'];
 
-    return this.docs
-      .filter(r => !q || r.debtorCode.toLowerCase().includes(q) || r.debtorName.toLowerCase().includes(q))
-      .map(r => {
-        const due = this.addDays(new Date(r.docDate), r.term);
-        const daysPastDue = this.daysBetween(asOf, due); // negative => not due
-        const localOutstanding = r.outstanding * r.rate;
-        return {...r, due, daysPastDue, localOutstanding};
-      })
-      .filter(r => r.localOutstanding > 0); // aging thường chỉ với số dư > 0
+  private masterTxns: Txn[] = [
+    // CARE PHONE SDN (RETAIL) — 1 chứng từ => 5+ OVER 1,250.00
+    {
+      debtorCode: '300-A001',
+      debtorName: 'CARE PHONE SDN',
+      debtorType: 'RETAIL',
+      agent: 'TEH',
+      phone: '0925145321',
+      currency: 'MYR',
+      docDate: '2025-05-05',
+      dueDate: '2025-06-04',
+      docType: 'IN',
+      docNo: 'INV 0801',
+      amount: 1250,
+    },
+
+    // BEST PHONE SDN BHD (TRADING) — đúng 3 dòng như hình:
+    // 1) DN 120.00 -> CURRENT
+    {
+      debtorCode: '300-B001',
+      debtorName: 'BEST PHONE SDN BHD',
+      debtorType: 'TRADING',
+      agent: 'TEH',
+      phone: '0925145321',
+      currency: 'MYR',
+      docDate: '2025-10-05',
+      dueDate: '2025-11-04',
+      docType: 'DN',
+      docNo: 'DN-000001',
+      amount: 120,
+    },
+    // 2) IN 2,150.00 -> 1 MONTH
+    {
+      debtorCode: '300-B001',
+      debtorName: 'BEST PHONE SDN BHD',
+      debtorType: 'TRADING',
+      agent: 'TEH',
+      phone: '0925145321',
+      currency: 'MYR',
+      docDate: '2025-09-23',
+      dueDate: '2025-10-23',
+      docType: 'IN',
+      docNo: 'I-000001',
+      amount: 3549,
+    },
+    // 3) IN 3,549.00 -> 2 MONTHS
+    {
+      debtorCode: '300-B001',
+      debtorName: 'BEST PHONE SDN BHD',
+      debtorType: 'TRADING',
+      agent: 'TEH',
+      phone: '0925145321',
+      currency: 'MYR',
+      docDate: '2025-10-05',
+      dueDate: '2025-11-04',
+      docType: 'IN',
+      docNo: 'I-000002',
+      amount: 2150,
+    },
+
+    // LGH ENTERPRISE (TRADING) — 1 chứng từ => 3 MONTHS 9,500.00
+    {
+      debtorCode: '300-L001',
+      debtorName: 'LGH ENTERPRISE',
+      debtorType: 'TRADING',
+      agent: 'JLO',
+      phone: '0925145321',
+      currency: 'MYR',
+      docDate: '2025-07-23',
+      dueDate: '2025-08-23',
+      docType: 'IN',
+      docNo: 'INV 0803',
+      amount: 9500,
+    },
+  ];
+
+  // ======= state =======
+  private _rows = signal<RowView[]>([]);
+  rows = computed(() => {
+    const list = [...this._rows()];
+    const k = this._sortKey();
+    const d = this._sortDir();
+    const cmp = (a: any, b: any) => {
+      const va = k === 'balance' ? a.totals.balance : (a as any)[k];
+      const vb = k === 'balance' ? b.totals.balance : (b as any)[k];
+      if (typeof va === 'number' && typeof vb === 'number')
+        return d === 'asc' ? va - vb : vb - va;
+      return d === 'asc'
+        ? ('' + va).localeCompare('' + vb)
+        : ('' + vb).localeCompare('' + va);
+    };
+    return list.sort(cmp);
   });
 
-  // ===== Aggregate to aging lines (per debtor) =====
-  agingLines = computed(() => {
-    const f = this.fg.value as any;
-    const bucket = Number(f.bucketSize) || 30;
-    const map = new Map<string, AgingLine>();
+  // group view
+  groups = computed(() => {
+    if (this.fg.value.groupBy !== 'debtorType') return [];
+    const m = new Map<string, RowView[]>();
+    for (const r of this.rows()) {
+      const key = r.debtorType;
+      if (!m.has(key)) m.set(key, []);
+      m.get(key)!.push(r);
+    }
+    return Array.from(m.entries()).map(([key, items]) => ({ key, items }));
+  });
 
-    for (const r of this.filteredDocs()) {
-      const key = r.debtorCode;
+  showGrouped = () => this.fg.value.groupBy !== 'none';
+
+  // ======= sort state =======
+  private _sortKey = signal<'debtorCode' | 'debtorName' | 'agent' | 'balance'>(
+    'debtorCode'
+  );
+  private _sortDir = signal<'asc' | 'desc'>('asc');
+
+  sortKey = () => this._sortKey();
+  sortDir = () => this._sortDir();
+
+  onHeaderSort(key: 'debtorCode' | 'debtorName' | 'agent' | 'balance') {
+    if (this._sortKey() === key) {
+      this._sortDir.set(this._sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this._sortKey.set(key);
+      this._sortDir.set('asc');
+    }
+  }
+
+  // ======= UI helpers =======
+  colShown(which: 'm4' | 'over5') {
+    const months = this.fg.value.agingMonths ?? 6;
+    if (which === 'm4') return true; // luôn hiện 4M
+    if (which === 'over5') return months >= 6; // chỉ hiện khi 6 months
+    return true;
+  }
+
+  fullColSpan() {
+    // 14 cột khi có cả 4M + 5+M
+    let c = 14;
+    if (!this.colShown('m4')) c--;
+    if (!this.colShown('over5')) c--;
+    return c;
+  }
+
+  toggle(r: RowView) {
+    r.expanded = !r.expanded;
+  }
+
+  // ======= core =======
+  inquiry() {
+    // đọc form
+    const v = this.fg.getRawValue();
+    const asOf = new Date(v.asOf || this.today());
+
+    // filter theo debtor / debtorType
+    let rows = this.masterTxns
+      .filter((t) => v.debtor === 'ALL' || t.debtorCode === v.debtor)
+      .filter((t) => v.debtorType === 'ALL' || t.debtorType === v.debtorType)
+      .map((t) => this.withBuckets(t, asOf, v.agingMonths ?? 6));
+
+    // gộp theo debtor
+    const map = new Map<string, RowView>();
+    for (const t of rows) {
+      const key = t.debtorCode;
       if (!map.has(key)) {
         map.set(key, {
-          debtorCode: r.debtorCode,
-          debtorName: r.debtorName,
-          salesAgent: r.salesAgent,
-          current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0
+          debtorCode: t.debtorCode,
+          debtorName: t.debtorName,
+          debtorType: t.debtorType,
+          agent: t.agent,
+          phone: t.phone,
+          currency: t.currency,
+          txns: [],
+          totals: this.zeroBucket(),
+          expanded: false,
         });
       }
-      const line = map.get(key)!;
-      const val = r.localOutstanding;
+      const r = map.get(key)!;
+      r.txns.push(t);
+      this.addBucket(r.totals, t.buckets!);
+    }
+    for (const r of map.values()) {
+      // (nếu muốn cộng dồn theo thứ tự riêng, có thể sort r.txns ở đây)
+      // r.txns.sort((a, b) => a.docDate.localeCompare(b.docDate)); // ví dụ
 
-      if (r.daysPastDue <= 0) line.current += val;
-      else if (r.daysPastDue <= bucket) line.d1_30 += val;
-      else if (r.daysPastDue <= bucket*2) line.d31_60 += val;
-      else if (r.daysPastDue <= bucket*3) line.d61_90 += val;
-      else line.over90 += val;
+      let run = 0;
+      for (const t of r.txns) {
+        run += t.buckets?.balance ?? 0;
+        t.runBalance = run; // ⬅️ gán cộng dồn
+      }
+    }
+    this._rows.set(Array.from(map.values()));
+  }
 
-      line.total = line.current + line.d1_30 + line.d31_60 + line.d61_90 + line.over90;
+  // ======= bucket helpers =======
+  private withBuckets(t: Txn, asOf: Date, agingMonths: 4 | 6): Txn {
+    const b = this.zeroBucket();
+
+    const due = new Date(t.dueDate);
+    const diffM = this.monthDiff(due, asOf); // số tháng overdue (âm/0 => current)
+    t.isOverDue = diffM > 0;
+
+    const amount = t.amount;
+
+    if (diffM <= 0) b.cur += amount;
+    else if (diffM === 1) b.m1 += amount;
+    else if (diffM === 2) b.m2 += amount;
+    else if (diffM === 3) b.m3 += amount;
+    else if (diffM === 4) b.m4 += amount;
+    else b.over5 += amount;
+
+    b.balance = b.cur + b.m1 + b.m2 + b.m3 + b.m4 + b.over5;
+    b.totalOverDue = b.m1 + b.m2 + b.m3 + b.m4 + b.over5;
+
+    // nếu chọn 4 months: gộp 5+ vào 4M cho dễ nhìn (cột 5+ bị ẩn)
+    if (agingMonths === 4 && b.over5) {
+      b.m4 += b.over5;
+      b.over5 = 0;
     }
 
-    let arr = Array.from(map.values());
-    if (!(this.fg.value as any).includeZero) {
-      arr = arr.filter(x => x.total > 0);
-    }
-    // sort by debtor code for stability
-    arr.sort((a,b)=> a.debtorCode.localeCompare(b.debtorCode));
-    return arr;
-  });
+    t.buckets = b;
+    return t;
+  }
 
-  // ===== Totals =====
-  totals = computed(() => {
-    const a = this.agingLines();
-    const sum = (k: keyof AgingLine) => a.reduce((s,x)=> s + (x[k] as number), 0);
+  private zeroBucket(): Bucket {
     return {
-      current: +(sum('current')).toFixed(2),
-      d1_30: +(sum('d1_30')).toFixed(2),
-      d31_60: +(sum('d31_60')).toFixed(2),
-      d61_90: +(sum('d61_90')).toFixed(2),
-      over90: +(sum('over90')).toFixed(2),
-      total: +(sum('total')).toFixed(2),
+      cur: 0,
+      m1: 0,
+      m2: 0,
+      m3: 0,
+      m4: 0,
+      over5: 0,
+      balance: 0,
+      totalOverDue: 0,
     };
-  });
+  }
+  private addBucket(dst: Bucket, src: Bucket) {
+    dst.cur += src.cur;
+    dst.m1 += src.m1;
+    dst.m2 += src.m2;
+    dst.m3 += src.m3;
+    dst.m4 += src.m4;
+    dst.over5 += src.over5;
+    dst.balance += src.balance;
+    dst.totalOverDue += src.totalOverDue;
+  }
 
-  // ===== Grouped by sales agent (optional) =====
-  grouped = computed(() => {
-    const by = (this.fg.value as any).groupBy as string;
-    if (by === 'none') return [] as Array<{key:string, items:AgingLine[], totals:any}>;
-    const mp = new Map<string, AgingLine[]>();
+  private monthDiff(a: Date, b: Date) {
+    const months =
+      (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    // nếu cùng tháng nhưng b ngày <= a ngày thì coi như chưa qua thêm 1 tháng
+    return b.getDate() > a.getDate() ? months : months;
+  }
 
-    for (const line of this.agingLines()) {
-      const key = line.salesAgent || '(No Agent)';
-      const list = mp.get(key);
-      if (list) list.push(line); else mp.set(key, [line]);
-    }
+  private today() {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+  // Đặt trong class DebtorAgingReportComponent
+  get totalsAll() {
+    const init = {
+      cur: 0,
+      m1: 0,
+      m2: 0,
+      m3: 0,
+      m4: 0,
+      over5: 0,
+      totalOverDue: 0,
+      balance: 0,
+    };
 
-    const out: Array<{key:string, items:AgingLine[], totals:any}> = [];
-    for (const [key, items] of mp.entries()) {
-      const sum = (k: keyof AgingLine) => items.reduce((s,x)=> s + (x[k] as number), 0);
-      out.push({
-        key, items,
-        totals: {
-          current:+(sum('current')).toFixed(2),
-          d1_30:+(sum('d1_30')).toFixed(2),
-          d31_60:+(sum('d31_60')).toFixed(2),
-          d61_90:+(sum('d61_90')).toFixed(2),
-          over90:+(sum('over90')).toFixed(2),
-          total:+(sum('total')).toFixed(2),
-        }
-      });
-    }
-    // keep stable order
-    out.sort((a,b)=> a.key.localeCompare(b.key));
-    return out;
-  });
+    return this.rows().reduce((acc: any, r: any) => {
+      const t = r?.totals ?? init;
 
-  // ===== Actions =====
-  inquiry(){ this.showPreview.set(false); }
-  preview(){ this.showPreview.set(true); }
-  print(){ window.print(); }
-  toggleOptions(){ this.showOptions = !this.showOptions; }
+      acc.cur += t.cur ?? 0;
+      acc.m1 += t.m1 ?? 0;
+      acc.m2 += t.m2 ?? 0;
+      acc.m3 += t.m3 ?? 0;
+      acc.m4 += t.m4 ?? 0;
+      acc.over5 += t.over5 ?? 0;
+
+      // totalOverDue: nếu đã có sẵn thì lấy, không thì tự cộng các bucket
+      const sumOverDue =
+        t.totalOverDue != null
+          ? t.totalOverDue
+          : (t.cur ?? 0) +
+            (t.m1 ?? 0) +
+            (t.m2 ?? 0) +
+            (t.m3 ?? 0) +
+            (t.m4 ?? 0) +
+            (t.over5 ?? 0);
+
+      acc.totalOverDue += sumOverDue;
+      acc.balance += t.balance ?? sumOverDue; // hoặc t.balance ?? 0 nếu bạn tách balance riêng
+
+      return acc;
+    }, init);
+  }
 }

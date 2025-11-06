@@ -1,134 +1,375 @@
 <div class="page">
   <div class="titlebar">
-    <h1>Debtor Aging</h1>
-    <div class="toolbar">
-      <button class="btn" (click)="inquiry()"><span class="ico refresh"></span> Inquiry</button>
-      <button class="btn" (click)="preview()"><span class="ico eye"></span> Preview</button>
-      <button class="btn" (click)="print()"><span class="ico print"></span> Print</button>
-      <button class="btn" (click)="toggleOptions()">{{ showOptions ? 'Hide Options' : 'Show Options' }}</button>
-    </div>
+    <h1>Debtor Aging Report</h1>
   </div>
 
   <!-- Options -->
-  <div class="options" *ngIf="showOptions">
-    <form [formGroup]="fg" class="opt-grid">
-      <fieldset>
-        <legend>Date & Filter</legend>
-        <label>As at <input type="date" formControlName="asOf"></label>
-        <label>Debtor <input formControlName="debtor" placeholder="Filter by code or name"></label>
-      </fieldset>
+  <div class="options">
+    <form [formGroup]="fg" class="options">
+      <fieldset class="filters">
+        <div class="f">
+          <div class="lbl">Date</div>
+          <div class="ctl">
+            <input type="date" formControlName="asOf" />
+          </div>
+        </div>
 
-      <fieldset>
-        <legend>Options</legend>
-        <label>Bucket size (days)
-          <input type="number" min="15" step="5" formControlName="bucketSize">
-        </label>
-        <label>Group by
-          <select formControlName="groupBy">
-            <option value="none">None</option>
-            <option value="salesAgent">Sales Agent</option>
-          </select>
-        </label>
-        <label class="chk">
-          <input type="checkbox" formControlName="includeZero"> Include zero-balance
-        </label>
-        <label class="chk">
-          <input type="checkbox" formControlName="showCriteria"> Show Criteria in Report
-        </label>
+        <div class="f">
+          <div class="lbl">Debtor</div>
+          <div class="ctl">
+            <select formControlName="debtor">
+              <option value="ALL">All</option>
+              <option *ngFor="let d of debtors" [value]="d.code">
+                {{ d.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="f">
+          <div class="lbl">Debtor Type</div>
+          <div class="ctl">
+            <select formControlName="debtorType">
+              <option value="ALL">All</option>
+              <option *ngFor="let t of debtorTypes" [value]="t">
+                {{ t }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="f">
+          <div class="lbl">Aging Months</div>
+          <div class="ctl">
+            <select formControlName="agingMonths">
+              <option [value]="4">4</option>
+              <option [value]="6">6</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="f">
+          <div class="lbl">Group by</div>
+          <div class="ctl inline">
+            <select formControlName="groupBy">
+              <option value="none">None</option>
+              <option value="debtorType">Debtor Type</option>
+            </select>
+          </div>
+        </div>
+        <div class="f">
+          <div class="lbl"></div>
+          <div class="ctl inline">
+            <br />
+            <button type="button" class="btn primary" (click)="inquiry()">
+              <span class="ico refresh"></span> Inquiry
+            </button>
+          </div>
+        </div>
       </fieldset>
     </form>
   </div>
-
-  <!-- Grid (no group) -->
-  <div class="gridwrap" *ngIf="fg.value.groupBy==='none'">
+  <!-- Table -->
+  <div class="gridwrap" *ngIf="!showGrouped()">
     <table>
       <thead>
         <tr>
-          <th>Debtor</th>
-          <th class="r">Current</th>
-          <th class="r">1–{{ fg.value.bucketSize }}</th>
-          <th class="r">{{ fg.value.bucketSize!+1 }}–{{ fg.value.bucketSize!*2 }}</th>
-          <th class="r">{{ fg.value.bucketSize!*2+1 }}–{{ fg.value.bucketSize!*3 }}</th>
-          <th class="r">&gt;{{ fg.value.bucketSize!*3 }}</th>
-          <th class="r">Total</th>
+          <th class="toggle"></th>
+          <th (click)="onHeaderSort('debtorCode')">
+            Debtor No.
+            <span class="arrow" *ngIf="sortKey() === 'debtorCode'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
+          <th (click)="onHeaderSort('debtorName')">
+            Company Name
+            <span class="arrow" *ngIf="sortKey() === 'debtorName'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
+          <th>Phone</th>
+          <th>Currency</th>
+
+          <th class="r">CURRENT</th>
+          <th class="r">1 MONTH</th>
+          <th class="r">2 MONTHS</th>
+          <th class="r">3 MONTHS</th>
+          <th class="r" *ngIf="colShown('m4')">4 MONTHS</th>
+          <th class="r" *ngIf="colShown('over5')">5 &amp; OVER</th>
+          <th class="r">Total Over Due</th>
+          <th class="r" (click)="onHeaderSort('balance')">
+            Balance
+            <span class="arrow" *ngIf="sortKey() === 'balance'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
         </tr>
       </thead>
-      <tbody>
-        <tr *ngFor="let r of agingLines()">
-          <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
-          <td class="r">{{ r.current  | number:'1.2-2' }}</td>
-          <td class="r">{{ r.d1_30    | number:'1.2-2' }}</td>
-          <td class="r">{{ r.d31_60   | number:'1.2-2' }}</td>
-          <td class="r">{{ r.d61_90   | number:'1.2-2' }}</td>
-          <td class="r">{{ r.over90   | number:'1.2-2' }}</td>
-          <td class="r"><strong>{{ r.total | number:'1.2-2' }}</strong></td>
+
+      <tbody *ngFor="let r of rows()">
+        <!-- debtor total row -->
+        <tr class="debtor">
+          <td class="toggle">
+            <button class="toggle-btn" (click)="toggle(r)" type="button">
+              {{ r.expanded ? "−" : "+" }}
+            </button>
+          </td>
+          <td>{{ r.debtorCode }}</td>
+          <td>{{ r.debtorName }}</td>
+          <td class="c">{{ r.phone }}</td>
+          <td class="c">{{ r.currency }}</td>
+          <td class="r">{{ r.totals.cur | number : "1.2-2" }}</td>
+          <td class="r">{{ r.totals.m1 | number : "1.2-2" }}</td>
+          <td class="r">{{ r.totals.m2 | number : "1.2-2" }}</td>
+          <td class="r">{{ r.totals.m3 | number : "1.2-2" }}</td>
+          <td class="r" *ngIf="colShown('m4')">
+            {{ r.totals.m4 || 0 | number : "1.2-2" }}
+          </td>
+          <td class="r" *ngIf="colShown('over5')">
+            {{ r.totals.over5 || 0 | number : "1.2-2" }}
+          </td>
+          <td class="r">{{ r.totals.totalOverDue | number : "1.2-2" }}</td>
+          <td class="r">{{ r.totals.balance | number : "1.2-2" }}</td>
+        </tr>
+
+        <!-- details (hidden until expand) -->
+        <!-- ====== NON-GROUPED ====== -->
+        <tr class="detail-row" *ngIf="r.expanded">
+          <td [attr.colspan]="fullColSpan()">
+            <div class="detail-wrap full">
+              <table class="grid detail-yellow">
+                <thead>
+                  <tr>
+                    <th>Doc Date</th>
+                    <th>Due Date</th>
+                    <th>Doc Type</th>
+                    <th>Is OverDue</th>
+                    <th class="r">CURRENT</th>
+                    <th class="r">1 MONTH</th>
+                    <th class="r">2 MONTHS</th>
+                    <th class="r">3 MONTHS</th>
+                    <th class="r" *ngIf="colShown('m4')">4 MONTHS</th>
+                    <th class="r" *ngIf="colShown('over5')">5 &amp; OVER</th>
+                    <th class="r">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let t of r.txns">
+                    <td>{{ t.docDate }}</td>
+                    <td>{{ t.dueDate }}</td>
+                    <td class="c">{{ t.docType }}</td>
+                    <td class="c">
+                      <input type="checkbox" [checked]="t.isOverDue" disabled />
+                    </td>
+                    <td class="r">
+                      {{ t.buckets?.cur ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r">
+                      {{ t.buckets?.m1 ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r">
+                      {{ t.buckets?.m2 ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r">
+                      {{ t.buckets?.m3 ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r" *ngIf="colShown('m4')">
+                      {{ t.buckets?.m4 ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r" *ngIf="colShown('over5')">
+                      {{ t.buckets?.over5 ?? 0 | number : "1.2-2" }}
+                    </td>
+                    <td class="r">
+                      {{ (t.runBalance ?? t.buckets?.balance ?? 0) | number : "1.2-2" }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </td>
         </tr>
       </tbody>
+      <tfoot class="sum-row">
+        <tr>
+          <!-- 6 cột đầu tiên: toggle + Debtor Code + Company + Agent + Phone + Currency -->
+          <td colspan="5" class="r"><strong>Total</strong></td>
+
+          <td class="r">{{ totalsAll.cur | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m1 | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m2 | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m3 | number : "1.2-2" }}</td>
+
+          <!-- Chỉ hiện khi bạn đang bật cột 4M / 5+ -->
+          <td class="r" *ngIf="colShown('m4')">
+            {{ totalsAll.m4 | number : "1.2-2" }}
+          </td>
+          <td class="r" *ngIf="colShown('over5')">
+            {{ totalsAll.over5 | number : "1.2-2" }}
+          </td>
+
+          <td class="r">{{ totalsAll.totalOverDue | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.balance | number : "1.2-2" }}</td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 
-  <!-- Grid (grouped by agent) -->
-  <div class="gridwrap" *ngIf="fg.value.groupBy!=='none'">
+  <!-- Grouped view -->
+  <div class="gridwrap" *ngIf="showGrouped()">
     <table>
       <thead>
         <tr>
-          <th>Debtor (Group: Sales Agent)</th>
-          <th class="r">Current</th>
-          <th class="r">1–{{ fg.value.bucketSize }}</th>
-          <th class="r">{{ fg.value.bucketSize!+1 }}–{{ fg.value.bucketSize!*2 }}</th>
-          <th class="r">{{ fg.value.bucketSize!*2+1 }}–{{ fg.value.bucketSize!*3 }}</th>
-          <th class="r">&gt;{{ fg.value.bucketSize!*3 }}</th>
-          <th class="r">Total</th>
+          <th></th>
+          <th (click)="onHeaderSort('debtorCode')">
+            Debtor Code
+            <span class="arrow" *ngIf="sortKey() === 'debtorCode'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
+          <th (click)="onHeaderSort('debtorName')">
+            Company Name
+            <span class="arrow" *ngIf="sortKey() === 'debtorName'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
+          <th>Phone</th>
+          <th>Currency</th>
+          <th class="r">CURRENT</th>
+          <th class="r">1 MONTH</th>
+          <th class="r">2 MONTHS</th>
+          <th class="r">3 MONTHS</th>
+          <th class="r" *ngIf="colShown('m4')">4 MONTHS</th>
+          <th class="r" *ngIf="colShown('over5')">5 &amp; OVER</th>
+          <th class="r">Total Over Due</th>
+          <th class="r" (click)="onHeaderSort('balance')">
+            Balance
+            <span class="arrow" *ngIf="sortKey() === 'balance'">{{
+              sortDir() === "asc" ? "▲" : "▼"
+            }}</span>
+          </th>
         </tr>
       </thead>
 
-      <ng-container *ngFor="let g of grouped()">
+      <ng-container *ngFor="let g of groups()">
         <tbody class="group-head">
-          <tr><td colspan="7">Group: <strong>{{ g.key }}</strong></td></tr>
-        </tbody>
-        <tbody>
-          <tr *ngFor="let r of g.items">
-            <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
-            <td class="r">{{ r.current  | number:'1.2-2' }}</td>
-            <td class="r">{{ r.d1_30    | number:'1.2-2' }}</td>
-            <td class="r">{{ r.d31_60   | number:'1.2-2' }}</td>
-            <td class="r">{{ r.d61_90   | number:'1.2-2' }}</td>
-            <td class="r">{{ r.over90   | number:'1.2-2' }}</td>
-            <td class="r"><strong>{{ r.total | number:'1.2-2' }}</strong></td>
+          <tr>
+            <td colspan="14">
+              <strong
+                >{{
+                  fg.value.groupBy === "agent"
+                    ? "Agent"
+                    : fg.value.groupBy === "area"
+                    ? "Area"
+                    : "Debtor Type"
+                }}: {{ g.key }}</strong
+              >
+              &nbsp; — Total Debtor: {{ g.items.length }}
+            </td>
           </tr>
         </tbody>
-        <tbody class="group-total">
-          <tr>
-            <td class="r"><strong>Subtotal</strong></td>
-            <td class="r"><strong>{{ g.totals.current  | number:'1.2-2' }}</strong></td>
-            <td class="r"><strong>{{ g.totals.d1_30    | number:'1.2-2' }}</strong></td>
-            <td class="r"><strong>{{ g.totals.d31_60   | number:'1.2-2' }}</strong></td>
-            <td class="r"><strong>{{ g.totals.d61_90   | number:'1.2-2' }}</strong></td>
-            <td class="r"><strong>{{ g.totals.over90   | number:'1.2-2' }}</strong></td>
-            <td class="r"><strong>{{ g.totals.total    | number:'1.2-2' }}</strong></td>
+
+        <tbody *ngFor="let r of g.items">
+          <tr class="debtor">
+            <td class="toggle">
+              <button class="toggle-btn" (click)="toggle(r)" type="button">
+                {{ r.expanded ? "−" : "+" }}
+              </button>
+            </td>
+            <td>{{ r.debtorCode }}</td>
+            <td>{{ r.debtorName }}</td>
+            <td class="c">{{ r.phone }}</td>
+            <td class="c">{{ r.currency }}</td>
+            <td class="r">{{ r.totals.cur | number : "1.2-2" }}</td>
+            <td class="r">{{ r.totals.m1 | number : "1.2-2" }}</td>
+            <td class="r">{{ r.totals.m2 | number : "1.2-2" }}</td>
+            <td class="r">{{ r.totals.m3 | number : "1.2-2" }}</td>
+            <td class="r" *ngIf="colShown('m4')">
+              {{ r.totals.m4 || 0 | number : "1.2-2" }}
+            </td>
+            <td class="r" *ngIf="colShown('over5')">
+              {{ r.totals.over5 || 0 | number : "1.2-2" }}
+            </td>
+            <td class="r">{{ r.totals.totalOverDue | number : "1.2-2" }}</td>
+            <td class="r">{{ r.totals.balance | number : "1.2-2" }}</td>
+          </tr>
+
+          <!-- ====== GROUPED ====== -->
+          <tr class="detail-row" *ngIf="r.expanded">
+            <td [attr.colspan]="fullColSpan()">
+              <div class="gridwrap">
+                <table class="grid detail-yellow">
+                  <thead>
+                    <tr>
+                      <th>Doc Date</th>
+                      <th>Due Date</th>
+                      <th>Doc Type</th>
+                      <th>Is OverDue</th>
+                      <th class="r">CURRENT</th>
+                      <th class="r">1 MONTH</th>
+                      <th class="r">2 MONTHS</th>
+                      <th class="r">3 MONTHS</th>
+                      <th class="r" *ngIf="colShown('m4')">4 MONTHS</th>
+                      <th class="r" *ngIf="colShown('over5')">5 &amp; OVER</th>
+                      <th class="r">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let t of r.txns">
+                      <td>{{ t.docDate }}</td>
+                      <td>{{ t.dueDate }}</td>
+                      <td class="c">{{ t.docType }}</td>
+                      <td class="c">
+                        <input
+                          type="checkbox"
+                          [checked]="t.isOverDue"
+                          disabled
+                        />
+                      </td>
+                      <td class="r">
+                        {{ t.buckets?.cur ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r">
+                        {{ t.buckets?.m1 ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r">
+                        {{ t.buckets?.m2 ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r">
+                        {{ t.buckets?.m3 ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r" *ngIf="colShown('m4')">
+                        {{ t.buckets?.m4 ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r" *ngIf="colShown('over5')">
+                        {{ t.buckets?.over5 ?? 0 | number : "1.2-2" }}
+                      </td>
+                      <td class="r">
+                        {{ (t.runBalance ?? t.buckets?.balance ?? 0) | number : "1.2-2" }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </td>
           </tr>
         </tbody>
       </ng-container>
+      <tfoot class="sum-row">
+        <tr>
+          <td colspan="5" class="r"><strong>Total</strong></td>
+          <td class="r">{{ totalsAll.cur | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m1 | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m2 | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.m3 | number : "1.2-2" }}</td>
+          <td class="r" *ngIf="colShown('m4')">
+            {{ totalsAll.m4 | number : "1.2-2" }}
+          </td>
+          <td class="r" *ngIf="colShown('over5')">
+            {{ totalsAll.over5 | number : "1.2-2" }}
+          </td>
+          <td class="r">{{ totalsAll.totalOverDue | number : "1.2-2" }}</td>
+          <td class="r">{{ totalsAll.balance | number : "1.2-2" }}</td>
+        </tr>
+      </tfoot>
     </table>
-  </div>
-
-  <!-- Grand totals -->
-  <div class="totals">
-    <div class="row"><span>Current</span><strong>{{ totals().current  | number:'1.2-2' }}</strong></div>
-    <div class="row"><span>1–{{ fg.value.bucketSize }}</span><strong>{{ totals().d1_30 | number:'1.2-2' }}</strong></div>
-    <div class="row"><span>{{ fg.value.bucketSize!+1 }}–{{ fg.value.bucketSize!*2 }}</span><strong>{{ totals().d31_60 | number:'1.2-2' }}</strong></div>
-    <div class="row"><span>{{ fg.value.bucketSize!*2+1 }}–{{ fg.value.bucketSize!*3 }}</span><strong>{{ totals().d61_90 | number:'1.2-2' }}</strong></div>
-    <div class="row"><span>&gt;{{ fg.value.bucketSize!*3 }}</span><strong>{{ totals().over90 | number:'1.2-2' }}</strong></div>
-    <div class="row final"><span>Total</span><strong>{{ totals().total | number:'1.2-2' }}</strong></div>
-  </div>
-
-  <!-- Preview box -->
-  <div *ngIf="showPreview()" class="previewbox">
-    <h3>Preview – Debtor Aging</h3>
-    <div *ngIf="fg.value.showCriteria" class="criteria">
-      <strong>As at:</strong> {{ fg.value.asOf }} &nbsp;|&nbsp;
-      <strong>Bucket:</strong> {{ fg.value.bucketSize }} days &nbsp;|&nbsp;
-      <strong>Group:</strong> {{ fg.value.groupBy }}
-    </div>
   </div>
 </div>

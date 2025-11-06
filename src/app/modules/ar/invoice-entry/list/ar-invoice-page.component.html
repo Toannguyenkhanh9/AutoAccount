@@ -205,14 +205,12 @@
           <!-- Invoice No / Date / Terms / Due Date -->
           <label
             >Invoice No
-            <div class="inline">
               <input
                 formControlName="docNo"
                 [readonly]="invForm.value.autoNumbering || formMode !== 'new'"
                 placeholder="&lt;&lt;new&gt;&gt;"
                 [class.invalid]="isInvalid('docNo')"
               />
-            </div>
             <div class="err" *ngIf="isInvalid('docNo')">
               <ng-container *ngIf="invForm.get('docNo')?.errors?.pattern">
                 Only letters, numbers, '-', '_' and '/' are allowed.
@@ -264,11 +262,11 @@
             />
           </label>
         </div>
-        <div class="to-box" *ngIf="selectedDebtor">
+        <div class="to-box">
           <div class="to-title">To :</div>
           <textarea
             class="to-text"
-            rows="4"
+            rows="3"
             readonly
             [value]="debtorToText"
           ></textarea>
@@ -287,8 +285,8 @@
             </div>
           </div>
 
-          <div class="tablewrap">
-            <table style="width: 90%">
+          <div>
+            <table class="table bordered" style="width: 90%">
               <thead>
                 <tr>
                   <th style="width: 200px">Sales A/C</th>
@@ -363,22 +361,16 @@
               </tbody>
             </table>
           </div>
-
-          <div class="totals">
-            <div class="sum-row">
-              <span class="label">Total</span>
-              <span class="val mono">{{
-                invForm.value.grandTotal | number : "1.2-2"
-              }}</span>
-            </div>
-
-            <div class="sum-row">
-              <span class="label">Outstanding</span>
-              <span class="val mono">{{
-                invForm.value.outstanding | number : "1.2-2"
-              }}</span>
-            </div>
+          <div class="totals-grid">
+          <div class="label">Total</div>
+          <div class="value">{{  invForm.value.grandTotal | number : "1.2-2" }}</div>
+          <div class="label">Net Total</div>
+          <div class="value">{{  invForm.value.grandTotal | number : "1.2-2" }}</div>
+          <div class="label">Outstanding</div>
+          <div class="value" >
+            {{   invForm.value.outstanding  | number : "1.2-2" }}
           </div>
+        </div>
         </div>
 
         <div class="dialog-actions">

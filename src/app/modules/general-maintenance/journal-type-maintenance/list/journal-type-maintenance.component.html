@@ -3,7 +3,7 @@
     <h1>Journal Type Maintenance</h1>
 
     <div class="toolbar">
-      <input class="search" [(ngModel)]="q" placeholder="Search type / description..." />
+      <input class="search1" [(ngModel)]="q" placeholder="Search type / description..." />
       <button class="btn primary" (click)="onNew()">New</button>
       <button class="btn" [disabled]="!selected" (click)="onEdit()">Edit</button>
       <button class="btn danger" [disabled]="!selected" (click)="onDelete()">Delete</button>

@@ -1,105 +1,184 @@
 <div class="page">
   <div class="titlebar">
     <h1>Outstanding A/R Invoice</h1>
-    <div class="toolbar">
-      <button class="btn" (click)="inquiry()"><span class="ico refresh"></span> Inquiry</button>
-      <button class="btn" (click)="preview()"><span class="ico eye"></span> Preview</button>
-      <button class="btn" (click)="print()"><span class="ico print"></span> Print</button>
-      <button class="btn" (click)="toggleOptions()">{{ showOptions ? 'Hide Options' : 'Show Options' }}</button>
-    </div>
   </div>
 
   <!-- Options -->
   <div class="options" *ngIf="showOptions">
-    <form [formGroup]="fg" class="opt-grid">
-      <fieldset>
-        <legend>Date Options</legend>
-        <label>As at <input type="date" formControlName="asOf" /></label>
-        <label>Debtor <input formControlName="debtor" placeholder="Filter by code or name" /></label>
-        <label>Doc Type
-          <select formControlName="typePreset">
-            <option value="INV_DN">Outstanding Invoice/Debit Notes</option>
-            <option value="INV_ONLY">Invoice only</option>
-            <option value="DN_ONLY">Debit Note only</option>
-          </select>
-        </label>
-      </fieldset>
+    <form [formGroup]="fg">
+      <fieldset class="filters">
+        <!-- Date -->
+        <div class="f">
+          <div class="lbl">Date</div>
+          <div class="ctl">
+            <input type="date" formControlName="asOf" />
+          </div>
+        </div>
 
-      <fieldset>
-        <legend>Report Options</legend>
-        <label>Sort by
-          <select formControlName="sortBy">
-            <option value="docNo">Document No</option>
-            <option value="docDate">Doc Date</option>
-            <option value="debtorCode">Debtor Code</option>
-            <option value="debtorName">Debtor Name</option>
-            <option value="salesAgent">Sales Agent</option>
-          </select>
-        </label>
-        <label class="chk">
-          <input type="checkbox" formControlName="showCriteria" />
-          Show Criteria in Report
-        </label>
-      </fieldset>
+        <!-- Debtor (All + list) -->
+        <div class="f">
+          <div class="lbl">Debtor</div>
+          <div class="ctl">
+            <select formControlName="debtor">
+              <option value="">All</option>
+              <option *ngFor="let d of debtorList" [value]="d.code">
+                {{ d.code }} — {{ d.name }}
+              </option>
+            </select>
+          </div>
+        </div>
 
-      <fieldset>
-        <legend>Other Options</legend>
-        <label>Group by
-          <select formControlName="groupBy">
-            <option value="none">None</option>
-            <option value="debtorCode">Debtor</option>
-            <option value="salesAgent">Sales Agent</option>
-          </select>
-        </label>
+        <!-- Due Type -->
+        <div class="f">
+          <div class="lbl">Due Type</div>
+          <div class="ctl">
+            <select formControlName="dueType">
+              <option value="ALL">Outstanding Invoice/Debit Notes</option>
+              <option value="UNDUE">Undue Invoice/Debit Notes</option>
+              <option value="OVERDUE">Overdue Invoice/Debit Notes</option>
+              <option value="ON_DUE">On Due Date Invoice/Debit Notes</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Group by + Inquiry on the same row -->
+        <div class="f">
+          <div class="lbl">Group by</div>
+          <div class="ctl">
+            <select formControlName="groupBy">
+              <option value="none">None</option>
+              <option value="debtorCode">Debtor Code</option>
+            </select>
+          </div>
+        </div>
+        <div class="f">
+          <div class="lbl"><span style="display: none;">Inquiry</span></div>
+          <div class="ctl">
+            <br>
+            <button type="button" class="btn primary" (click)="inquiry()">
+              <span class="ico refresh"></span> Inquiry
+            </button>
+          </div>
+        </div>
       </fieldset>
     </form>
   </div>
 
   <!-- Results (no group) -->
-  <div class="gridwrap" *ngIf="fg.value.groupBy==='none'">
+  <div class="gridwrap" *ngIf="fg.value.groupBy === 'none'">
     <table>
       <thead>
         <tr>
-          <th>Debtor</th>
-          <th>Doc No</th>
-          <th>Doc Date</th>
-          <th>Term</th>
-          <th>Age</th>
-          <th>Currency</th>
+          <th (click)="setSort('debtorCode')"
+              [class.sorted]="currentSort === 'debtorCode'"
+              [class.desc]="currentSort === 'debtorCode' && sortDir === 'desc'">
+            Debtor Code
+            <span class="arrow" *ngIf="currentSort === 'debtorCode'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+
+          <th (click)="setSort('docNo')"
+              [class.sorted]="currentSort === 'docNo'"
+              [class.desc]="currentSort === 'docNo' && sortDir === 'desc'">
+            Doc No
+            <span class="arrow" *ngIf="currentSort === 'docNo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+
+          <th (click)="setSort('debtorName')"
+              [class.sorted]="currentSort === 'debtorName'"
+              [class.desc]="currentSort === 'debtorName' && sortDir === 'desc'">
+            Company Name
+            <span class="arrow" *ngIf="currentSort === 'debtorName'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+
+          <th (click)="setSort('docDate')"
+              [class.sorted]="currentSort === 'docDate'"
+              [class.desc]="currentSort === 'docDate' && sortDir === 'desc'">
+            Doc Date
+            <span class="arrow" *ngIf="currentSort === 'docDate'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+
+          <th (click)="setSort('dueDate')"
+              [class.sorted]="currentSort === 'dueDate'"
+              [class.desc]="currentSort === 'dueDate' && sortDir === 'desc'">
+            Due Date
+            <span class="arrow" *ngIf="currentSort === 'dueDate'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+
+          <th>Doc Type</th>
+
+          <th class="c">Currency</th>
+          <th class="r">Term</th>
+          <th class="r">Age</th>
           <th class="r">Amount</th>
           <th class="r">Local Amount</th>
           <th class="r">Outstanding</th>
           <th class="r">Local Outstanding</th>
         </tr>
       </thead>
+
       <tbody>
-        <tr *ngFor="let r of filtered()">
-          <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
-          <td>{{ r.docNo }}</td>
+        <tr *ngFor="let r of filteredRows">
+          <td>{{ r.debtorCode }}</td>
+          <td class="link" (dblclick)="openSource(r)">{{ r.docNo }}</td>
+          <td>{{ r.debtorName }}</td>
           <td>{{ r.docDate }}</td>
-          <td class="c">{{ r.term }}</td>
-          <td class="c">{{ r.age }}</td>
+          <td>{{ r.dueDate }}</td>
+          <td class="c">{{ r.docType }}</td>
           <td class="c">{{ r.currency }}</td>
-          <td class="r">{{ r.amount | number:'1.2-2' }}</td>
-          <td class="r">{{ r.localAmount | number:'1.2-2' }}</td>
-          <td class="r">{{ r.outstanding | number:'1.2-2' }}</td>
-          <td class="r">{{ r.localOutstanding | number:'1.2-2' }}</td>
+          <td class="r">{{ r.term }}</td>
+          <td class="r">{{ r.age }}</td>
+          <td class="r">{{ r.amount | number : '1.2-2' }}</td>
+          <td class="r">{{ r.localAmount | number : '1.2-2' }}</td>
+          <td class="r">{{ r.outstanding | number : '1.2-2' }}</td>
+          <td class="r">{{ r.localOutstanding | number : '1.2-2' }}</td>
         </tr>
       </tbody>
+
+      <tfoot>
+        <tr class="sum-row">
+          <td colspan="10" class="r"><strong>Total</strong></td>
+          <td class="r blue"><strong>{{ totalLocalAmount | number : '1.2-2' }}</strong></td>
+          <td></td>
+          <td class="r blue"><strong>{{ totalLocalOutstanding | number : '1.2-2' }}</strong></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 
   <!-- Results (grouped) -->
-  <div class="gridwrap" *ngIf="fg.value.groupBy!=='none'">
+  <div class="gridwrap" *ngIf="fg.value.groupBy !== 'none'">
     <table>
       <thead>
         <tr>
-          <th>Debtor / Group</th>
-          <th>Doc No</th>
-          <th>Doc Date</th>
-          <th>Term</th>
-          <th>Age</th>
-          <th>Currency</th>
+          <th>Group</th>
+          <th (click)="setSort('docNo')"
+              [class.sorted]="currentSort === 'docNo'"
+              [class.desc]="currentSort === 'docNo' && sortDir === 'desc'">
+            Doc No
+            <span class="arrow" *ngIf="currentSort === 'docNo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th (click)="setSort('debtorName')"
+              [class.sorted]="currentSort === 'debtorName'"
+              [class.desc]="currentSort === 'debtorName' && sortDir === 'desc'">
+            Company Name
+            <span class="arrow" *ngIf="currentSort === 'debtorName'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th (click)="setSort('docDate')"
+              [class.sorted]="currentSort === 'docDate'"
+              [class.desc]="currentSort === 'docDate' && sortDir === 'desc'">
+            Doc Date
+            <span class="arrow" *ngIf="currentSort === 'docDate'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th (click)="setSort('dueDate')"
+              [class.sorted]="currentSort === 'dueDate'"
+              [class.desc]="currentSort === 'dueDate' && sortDir === 'desc'">
+            Due Date
+            <span class="arrow" *ngIf="currentSort === 'dueDate'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th>Doc Type</th>
+          <th class="c">Currency</th>
+          <th class="r">Term</th>
+          <th class="r">Age</th>
           <th class="r">Amount</th>
           <th class="r">Local Amount</th>
           <th class="r">Outstanding</th>
@@ -107,50 +186,40 @@
         </tr>
       </thead>
 
-      <ng-container *ngFor="let g of grouped()">
+      <ng-container *ngFor="let g of groupedBlocks">
         <tbody class="group-head">
           <tr>
-            <td colspan="10">Group: <strong>{{ g.key }}</strong></td>
+            <td colspan="14">Group: <strong>{{ g.key }}</strong></td>
           </tr>
         </tbody>
+
         <tbody>
           <tr *ngFor="let r of g.items">
-            <td>{{ r.debtorCode }} — {{ r.debtorName }}</td>
-            <td>{{ r.docNo }}</td>
+            <td>{{ g.key }}</td>
+            <td class="link" (dblclick)="openSource(r)">{{ r.docNo }}</td>
+            <td>{{ r.debtorName }}</td>
             <td>{{ r.docDate }}</td>
-            <td class="c">{{ r.term }}</td>
-            <td class="c">{{ r.age }}</td>
+            <td>{{ r.dueDate }}</td>
+            <td class="c">{{ r.docType }}</td>
             <td class="c">{{ r.currency }}</td>
-            <td class="r">{{ r.amount | number:'1.2-2' }}</td>
-            <td class="r">{{ r.localAmount | number:'1.2-2' }}</td>
-            <td class="r">{{ r.outstanding | number:'1.2-2' }}</td>
-            <td class="r">{{ r.localOutstanding | number:'1.2-2' }}</td>
+            <td class="r">{{ r.term }}</td>
+            <td class="r">{{ r.age }}</td>
+            <td class="r">{{ r.amount | number : '1.2-2' }}</td>
+            <td class="r">{{ r.localAmount | number : '1.2-2' }}</td>
+            <td class="r">{{ r.outstanding | number : '1.2-2' }}</td>
+            <td class="r">{{ r.localOutstanding | number : '1.2-2' }}</td>
           </tr>
         </tbody>
+
         <tbody class="group-total">
           <tr>
-            <td colspan="7"></td>
-            <td class="r"><strong>{{ g.totals.localAmount | number:'1.2-2' }}</strong></td>
+            <td colspan="10" class="r"><strong>Total</strong></td>
+            <td class="r blue"><strong>{{ g.totals.localAmount | number : '1.2-2' }}</strong></td>
             <td></td>
-            <td class="r"><strong>{{ g.totals.localOutstanding | number:'1.2-2' }}</strong></td>
+            <td class="r blue"><strong>{{ g.totals.localOutstanding | number : '1.2-2' }}</strong></td>
           </tr>
         </tbody>
       </ng-container>
     </table>
-  </div>
-
-  <div class="totals">
-    <div class="row"><span>Local Amount</span><strong>{{ totals().localAmount | number:'1.2-2' }}</strong></div>
-    <div class="row"><span>Local Outstanding</span><strong>{{ totals().localOutstanding | number:'1.2-2' }}</strong></div>
-  </div>
-
-  <div *ngIf="showPreview()" class="previewbox">
-    <h3>Preview – Outstanding A/R Invoice</h3>
-    <div *ngIf="fg.value.showCriteria" class="criteria">
-      <strong>As at:</strong> {{ fg.value.asOf }} &nbsp;|&nbsp;
-      <strong>Doc Type:</strong> {{ fg.value.typePreset }} &nbsp;|&nbsp;
-      <strong>Sort:</strong> {{ fg.value.sortBy }} &nbsp;|&nbsp;
-      <strong>Group:</strong> {{ fg.value.groupBy }}
-    </div>
   </div>
 </div>
