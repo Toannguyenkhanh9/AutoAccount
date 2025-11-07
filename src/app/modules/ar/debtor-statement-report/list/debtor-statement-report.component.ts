@@ -196,14 +196,14 @@ private master: DebtorRow[] = [
 
       // Các chứng từ 2009 còn outstanding (đúng tổng 5,819.00)
       {
-        docDate: '2025-10-05',
-        docNo: 'DN-000001',
+        docDate: '2025-08-10',
+        docNo: 'DN-0801',
         docType: 'DN',
         description: '2025 SALES',
         currency: 'MYR',
-        debit: 120,
+        debit: 500,
         credit: 0,
-        balance: 5819,
+        balance: 500,
         lines: [
           {
             date: '2025-10-05',
@@ -224,9 +224,9 @@ private master: DebtorRow[] = [
         docType: 'IN',
         description: '2009 SALES',
         currency: 'MYR',
-        debit:4440,
+        debit:9,
         credit: 0,
-        balance: 4440,
+        balance: 9,
         lines: [
           {
             date: '2025-09-23',
@@ -242,8 +242,31 @@ private master: DebtorRow[] = [
         ]
       },
       {
-        docDate: '2025-10-05',
+        docDate: '2025-09-25',
         docNo: 'I-000005',
+        docType: 'IN',
+        description: '2009 SALES',
+        currency: 'MYR',
+        debit: 4440,
+        credit: 0,
+        balance: 4440,
+        lines: [
+          {
+            date: '2025-08-23',
+            docNo: 'I-000005',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 2150,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      },
+      {
+        docDate: '2025-10-01',
+        docNo: 'I-000001',
         docType: 'IN',
         description: '2009 SALES',
         currency: 'MYR',
@@ -263,7 +286,54 @@ private master: DebtorRow[] = [
             runBalance: 0
           }
         ]
+      },
+      {
+        docDate: '2025-10-02',
+        docNo: 'DN-000001',
+        docType: 'DN',
+        description: '2009 SALES',
+        currency: 'MYR',
+        debit: 120,
+        credit: 0,
+        balance: 5819,
+        lines: [
+          {
+            date: '2025-08-23',
+            docNo: 'I-000005',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 2150,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
+      },
+      {
+        docDate: '2025-10-10',
+        docNo: 'OR-00002',
+        docType: 'OR',
+        description: 'ACCOUNT PAYMENT',
+        currency: 'MYR',
+        debit: 0,
+        credit: 1500,
+        balance: 4319,
+        lines: [
+          {
+            date: '2025-08-23',
+            docNo: 'I-000005',
+            type: 'IN',
+            description: 'Invoice',
+            chequeNo: '',
+            currency: 'MYR',
+            debit: 2150,
+            credit: 0,
+            runBalance: 0
+          }
+        ]
       }
+
     ],
     expanded: false
   },
