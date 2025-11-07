@@ -157,14 +157,14 @@ private master: DebtorRow[] = [
     documents: [
       // Doc cũ 2008 đã được thanh toán/đối trừ: về 0 (để thể hiện lưới như hình)
       {
-        docDate: '2025-11-05',
+        docDate: '2025-08-05',
         docNo: 'INV 0801',
         docType: 'IN',
         description: '2025 SALES',
         currency: 'MYR',
         debit: 5000,
         credit: 0,
-        balance: 0,
+        balance: 5000,
         lines: [
           // hóa đơn gốc
           {
@@ -199,11 +199,11 @@ private master: DebtorRow[] = [
         docDate: '2025-10-05',
         docNo: 'DN-000001',
         docType: 'DN',
-        description: '2009 SALES',
+        description: '2025 SALES',
         currency: 'MYR',
-        debit: 0,
+        debit: 120,
         credit: 0,
-        balance: 0,
+        balance: 5819,
         lines: [
           {
             date: '2025-10-05',
@@ -224,9 +224,9 @@ private master: DebtorRow[] = [
         docType: 'IN',
         description: '2009 SALES',
         currency: 'MYR',
-        debit: 0,
+        debit:4440,
         credit: 0,
-        balance: 0,
+        balance: 4440,
         lines: [
           {
             date: '2025-09-23',
@@ -242,14 +242,14 @@ private master: DebtorRow[] = [
         ]
       },
       {
-        docDate: '2025-08-23',
+        docDate: '2025-10-05',
         docNo: 'I-000005',
         docType: 'IN',
         description: '2009 SALES',
         currency: 'MYR',
-        debit: 0,
+        debit: 2400,
         credit: 0,
-        balance: 0,
+        balance: 5949,
         lines: [
           {
             date: '2025-08-23',
@@ -347,7 +347,7 @@ private master: DebtorRow[] = [
         expanded: false,
       })),
       expanded: false,
-      balance: 0,
+      //balance: 0,
     }));
 
     // Filter + tính toán lại theo khoảng ngày và statement type
