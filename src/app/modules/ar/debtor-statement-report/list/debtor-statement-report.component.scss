@@ -1018,3 +1018,28 @@ th.sortable{ cursor:pointer; user-select:none; }
 .sort::after{ content:''; margin-left:6px; border:5px solid transparent; display:inline-block; }
 .sort.asc::after{ border-bottom-color:#666; transform:translateY(-2px); }
 .sort.desc::after{ border-top-color:#666; transform:translateY(2px); }
+/* ========== Chỉ áp dụng cho dropdown Creditor ========== */
+
+.ms-panel.creditor-panel {
+  max-height: 320px;          /* giới hạn tổng chiều cao panel */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;           /* phần list bên trong sẽ scroll */
+}
+
+/* vùng danh sách creditor có scroll riêng, không che footer */
+.ms-panel.creditor-panel .list {
+  flex: 1 1 auto;
+  max-height: 240px;          /* chỉnh tuỳ ý */
+  overflow-y: auto;
+}
+
+/* scrollbar gọn gàng (optional) */
+.ms-panel.creditor-panel .list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ms-panel.creditor-panel .list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}

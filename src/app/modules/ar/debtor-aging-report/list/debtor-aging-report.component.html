@@ -2,7 +2,6 @@
   <div class="titlebar">
     <h1>Debtor Aging Report</h1>
   </div>
-
   <!-- Options -->
   <div class="options">
     <form [formGroup]="fg" class="options">
@@ -13,7 +12,6 @@
             <input type="date" formControlName="asOf" />
           </div>
         </div>
-
         <div class="f">
           <div class="lbl">Debtor</div>
           <div class="ctl">
@@ -191,12 +189,12 @@
       <tfoot class="sum-row">
         <tr>
           <!-- 6 cột đầu tiên: toggle + Debtor Code + Company + Agent + Phone + Currency -->
-          <td colspan="5" class="r"><strong>Total</strong></td>
+          <td colspan="5" class="r black"><strong>Total</strong></td>
 
-          <td class="r">{{ totalsAll.cur | number : "1.2-2" }}</td>
-          <td class="r">{{ totalsAll.m1 | number : "1.2-2" }}</td>
-          <td class="r">{{ totalsAll.m2 | number : "1.2-2" }}</td>
-          <td class="r">{{ totalsAll.m3 | number : "1.2-2" }}</td>
+          <td class="r blue">{{ totalsAll.cur | number : "1.2-2" }}</td>
+          <td class="r blue">{{ totalsAll.m1 | number : "1.2-2" }}</td>
+          <td class="r blue">{{ totalsAll.m2 | number : "1.2-2" }}</td>
+          <td class="r blue">{{ totalsAll.m3 | number : "1.2-2" }}</td>
 
           <!-- Chỉ hiện khi bạn đang bật cột 4M / 5+ -->
           <td class="r" *ngIf="colShown('m4')">
@@ -355,8 +353,8 @@
       </ng-container>
       <tfoot class="sum-row">
         <tr>
-          <td colspan="5" class="r"><strong>Total</strong></td>
-          <td class="r">{{ totalsAll.cur | number : "1.2-2" }}</td>
+          <td colspan="5" class="r black"><strong>Total</strong></td>
+          <td class="r blue">{{ totalsAll.cur | number : "1.2-2" }}</td>
           <td class="r">{{ totalsAll.m1 | number : "1.2-2" }}</td>
           <td class="r">{{ totalsAll.m2 | number : "1.2-2" }}</td>
           <td class="r">{{ totalsAll.m3 | number : "1.2-2" }}</td>

@@ -1,165 +1,531 @@
 <div class="page">
-    <div class="titlebar">
-      <h1>Account Maintenance</h1>
+  <div class="titlebar">
+    <h1>Account Maintenance</h1>
+    <button class="btn primary" (click)="print()">Print Chart of Account</button>
+  </div>
 
-      <div class="toolbar">
-        <input class="search" type="text"
-               placeholder="Search code / name / type / parent…"
-               [(ngModel)]="q" (input)="page=1" />
+  <!-- top filters -->
+  <div class="options">
+    <fieldset class="filters">
+      <div class="f">
+        <div class="lbl">Account Type</div>
+        <div class="ctl">
+          <select [(ngModel)]="selectedType">
+            <option *ngFor="let t of accountTypes" [value]="t.id">{{ t.label }}</option>
+          </select>
+        </div>
+      </div>
 
-        <button class="btn" (click)="openNew()">New</button>
-        <button class="btn" [disabled]="!selected" (click)="openEdit()">Edit</button>
-        <button class="btn warn" [disabled]="!selected" (click)="delete()">Delete</button>
+      <div class="f">
+        <span>Find</span>
+        <div class="ctl">
+          <input [(ngModel)]="findText" (keyup.enter)="doFind()" />
+        </div>
+      </div>
 
-        <button class="btn" (click)="refresh()">Refresh</button>
-        <button class="btn" (click)="printListing()">Print Listing</button>
+      <div class="f">
+        <div class="lbl">Up-To-Date</div>
+        <div class="ctl"><input type="date" [(ngModel)]="upToDate" /></div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="content">
+    <!-- left actions -->
+    <aside class="actions">
+      <div class="actions-group actions-group--main">
+        <button class="btn primary wide" (click)="openNewNormal()">New Normal Account</button>
+      </div>
+
+      <h4 class="actions-title">Special Accounts</h4>
+      <button class="btn primary wide" (click)="openFixedAsset()">Fixed Asset</button>
+      <button class="btn primary wide" (click)="openBankCash()">Bank, Cash, Deposit</button>
+      <button class="btn primary wide" (click)="openDebtorCtrl()">Debtor Control</button>
+      <button class="btn primary wide" (click)="openCreditorCtrl()">Creditor Control</button>
+      <button class="btn primary wide" (click)="openStock()">Stock</button>
+      <button class="btn primary wide" (click)="openRetained()">Retained Earning</button>
+      <div class="actions-group actions-group--main">
+         <button class="btn primary wide" (click)="openFixedLinks()">Maintain Fixed Assets Links</button>
+      </div>
+    </aside>
+
+    <!-- tree grid -->
+    <section class="gridwrap">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="desc">Description</th>
+            <th class="code">Acc. No.</th>
+            <th class="sp">Special Account Type</th>
+            <th class="bal r">Up-To-Date Balance</th>
+            <th class="opt"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let r of flat">
+            <tr
+              [id]="'row-' + r.node.id"
+              (click)="onRowSelect(r)"
+              [class.type]="r.node.kind === 'type'"
+              [class.special]="r.node.kind === 'special'"
+              [class.selected]="selectedNodeId === r.node.id"
+              [style.backgroundColor]="selectedNodeId===r.node.id ? '#fffbe6' : null"
+            >
+              <td class="desc">
+                <span [style.paddingLeft.px]="r.depth * 18"></span>
+                <button *ngIf="r.node.children?.length" class="toggle" type="button" (click)="toggle(r.node)">{{ r.node.expanded ? '−' : '+' }}</button>
+                <span *ngIf="!r.node.children || !r.node.children.length" class="dot">•</span>
+                <span class="name">{{ r.node.desc }}</span>
+              </td>
+              <td class="code">{{ r.node.code || '' }}</td>
+              <td class="sp">{{ r.node.specialCode || '' }}</td>
+              <td class="bal r">
+                <a href="#" (click)="$event.preventDefault(); drill(r.node)">{{ r.node.balance ?? '' | number : '1.2-2' }}</a>
+              </td>
+              <td class="opt" style="width: 100px">
+                <button
+                  class="mini"
+                  (click)="openNewNormal(r.node.id)"
+                  title="Add sub-account"
+                  *ngIf="r.node.kind === 'type' || (r.node.kind === 'normal' && !r.node.balance && (r.node.canCarryChildren || false))"
+                >＋</button>
+                <button class="mini" (click)="openEdit(r.node)" title="Edit" *ngIf="r.node.kind !== 'type'">✎</button>
+                <button
+                  class="mini danger"
+                  (click)="delete(r.node)"
+                  title="Delete"
+                  [disabled]="!canDelete(r.node)"
+                  *ngIf="r.node.kind !== 'type' && !r.node.balance && r.node.children && r.node.children.length === 0"
+                >🗑</button>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- ===== Modals ===== -->
+
+  <!-- New Normal -->
+  <div class="dialog" *ngIf="ui.newNormalOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        New Normal Account
+        <button class="x" (click)="ui.newNormalOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid3">
+          <label>Parent Account/Type
+            <select [(ngModel)]="newNormal.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account No. <input [(ngModel)]="newNormal.code" placeholder="e.g. 410-0000" /></label>
+          <label>Description <input [(ngModel)]="newNormal.desc" placeholder="e.g. MARKETING EXPENSES" /></label>
+          <label>Currency
+            <select [(ngModel)]="newNormal.currency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </label>
+          <label>Cash Flow Category
+            <select [(ngModel)]="newNormal.cashflow">
+              <option>Operating Activities</option>
+              <option>Investing Activities</option>
+              <option>Financing Activities</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn cancel" (click)="ui.newNormalOpen = false">Cancel</button>
+        <button class="btn primary" (click)="saveNewNormal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Asset (2 sections) -->
+<!-- Fixed Asset (2 sections, clearly separated) -->
+<div class="dialog" *ngIf="ui.fixedAssetOpen">
+  <div class="dialog-panel lg">
+    <div class="dialog-title">
+      Create New Fixed Asset
+      <button class="x" (click)="ui.fixedAssetOpen = false">✕</button>
+    </div>
+
+    <div class="dialog-body section-stack">
+      <!-- SECTION 1: Fixed Asset Account -->
+      <div class="section">
+        <div class="section-title">
+          <span class="badge">1</span>
+          Fixed Asset Account
+        </div>
+
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="fixedAsset.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">
+                  {{ p.desc }} ({{ p.code || p.id }})
+                </option>
+              </optgroup>
+            </select>
+          </label>
+
+          <label>Currency Code
+            <select [(ngModel)]="fixedAsset.currency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </label>
+
+          <label>Account No.
+            <input [(ngModel)]="fixedAsset.assetCode" placeholder="e.g. 220-0000" />
+          </label>
+
+          <label>Cash Flow Category
+            <select [(ngModel)]="fixedAsset.cashflow">
+              <option>Investing Activities</option>
+              <option>Operating Activities</option>
+              <option>Financing Activities</option>
+            </select>
+          </label>
+
+          <label>Description
+            <input [(ngModel)]="fixedAsset.assetDesc"
+                   (ngModelChange)="onFixedAssetNameChange($event)"
+                   placeholder="e.g. COMPUTERS" />
+          </label>
+
+          <label>2nd Description
+            <input [(ngModel)]="fixedAsset.assetDesc2" />
+          </label>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Accumulated Depreciation -->
+      <div class="section">
+        <div class="section-title">
+          <span class="badge">2</span>
+          Accumulated Depreciation Account
+        </div>
+
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="fixedAsset.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">
+                  {{ p.desc }} ({{ p.code || p.id }})
+                </option>
+              </optgroup>
+            </select>
+          </label>
+
+          <label>Currency Code
+            <select [(ngModel)]="fixedAsset.currency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </label>
+
+          <label>Account No.
+            <input [(ngModel)]="fixedAsset.deprCode" placeholder="e.g. 220-00AD" />
+          </label>
+
+          <label>Cash Flow Category
+            <select [(ngModel)]="fixedAsset.cashflow">
+              <option>Investing Activities</option>
+              <option>Operating Activities</option>
+              <option>Financing Activities</option>
+            </select>
+          </label>
+
+          <label>Description
+            <input [(ngModel)]="fixedAsset.deprDesc"
+                   placeholder="ACCUM. DEPRN. COMPUTERS" />
+          </label>
+
+          <label>2nd Description
+            <input [(ngModel)]="fixedAsset.deprDesc2" />
+          </label>
+        </div>
       </div>
     </div>
 
-    <div class="gridwrap">
-      <table>
+    <div class="dialog-actions">
+      <button class="btn cancel" (click)="ui.fixedAssetOpen = false">Cancel</button>
+      <button class="btn primary" (click)="saveFixedAsset()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Bank/Cash/Deposit -->
+  <div class="dialog" *ngIf="ui.bankCashOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">Bank / Cash / Deposit Account
+        <button class="x"  (click)="ui.bankCashOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="body form grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="bankCash.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account Mode
+            <select [(ngModel)]="bankCash.mode"><option>Bank</option><option>Cash</option><option>Deposit</option></select>
+          </label>
+          <label>Under Account Type of…
+            <select [(ngModel)]="bankCash.underType"><option>Current Assets</option><option>Current Liabilities</option></select>
+          </label>
+          <label>Currency
+            <select [(ngModel)]="bankCash.currency"><option *ngFor="let c of currencies" [value]="c">{{ c }}</option></select>
+          </label>
+          <label>Account No. <input [(ngModel)]="bankCash.code" placeholder="e.g. 311-0110" /></label>
+          <label>Description <input [(ngModel)]="bankCash.desc" placeholder="e.g. CBB 1234-5116-7890" /></label>
+          <label>Cash Flow Category
+            <select [(ngModel)]="bankCash.cashflow"><option>Operating Activities</option><option>Investing Activities</option><option>Financing Activities</option></select>
+          </label>
+          <label>Over Draft Limit <input type="number" [(ngModel)]="bankCash.odLimit" /></label>
+        </div>
+
+        <div class="subtitle">Payment Methods</div>
+        <div class="body paymethods">
+          <!-- giữ nguyên bảng methods nếu bạn đã có -->
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn cancel" (click)="ui.bankCashOpen = false">Cancel</button>
+        <button class="btn primary" (click)="saveBankCash()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debtor Control -->
+  <div class="dialog" *ngIf="ui.debtorCtrlOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">Create Debtor Control Account
+        <button class="x" (click)="ui.debtorCtrlOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="debtorCtrl.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account No. <input [(ngModel)]="debtorCtrl.code" /></label>
+          <label>Description <input [(ngModel)]="debtorCtrl.desc" /></label>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn cancel" (click)="ui.debtorCtrlOpen = false">Cancel</button>
+          <button class="btn primary" (click)="saveDebtorCtrl()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Creditor Control -->
+  <div class="dialog" *ngIf="ui.creditorCtrlOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">Create Creditor Control Account
+        <button class="x" (click)="ui.creditorCtrlOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="creditorCtrl.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account No. <input [(ngModel)]="creditorCtrl.code" /></label>
+          <label>Description <input [(ngModel)]="creditorCtrl.desc" /></label>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn cancel" (click)="ui.creditorCtrlOpen = false">Cancel</button>
+          <button class="btn primary" (click)="saveCreditorCtrl()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock -->
+  <div class="dialog" *ngIf="ui.stockOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">Create Stock Accounts (Open / Close / Balance)
+        <button class="x" (click)="ui.stockOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <label>Parent (Open/Close)
+            <select [(ngModel)]="stock.parentIdOpenClose">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Parent (Balance)
+            <select [(ngModel)]="stock.parentIdBalance">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Opening Stock Code <input [(ngModel)]="stock.openCode" /></label>
+          <label>Closing Stock Code <input [(ngModel)]="stock.closeCode" /></label>
+          <label>Balance Sheet Stock Code <input [(ngModel)]="stock.balCode" /></label>
+          <label>Currency <input [(ngModel)]="stock.currency" /></label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn cancel" (click)="ui.stockOpen = false">Cancel</button>
+        <button class="btn primary" (click)="saveStock()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Retained Earning -->
+  <div class="dialog" *ngIf="ui.retainedOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">Retained Earning (one and only one)
+        <button class="x" (click)="ui.retainedOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="retained.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account No. <input [(ngModel)]="retained.code" /></label>
+          <label>Description <input [(ngModel)]="retained.desc" /></label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn cancel" (click)="ui.retainedOpen = false">Cancel</button>
+        <button class="btn primary" (click)="saveRetained()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit -->
+  <div class="dialog" *ngIf="ui.editOpen">
+    <div class="dialog-panel">
+      <div class="dialog-title">
+        Edit Account
+        <button class="x" (click)="ui.editOpen = false">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <label>Parent Account/Type
+            <select [(ngModel)]="edit.parentId">
+              <optgroup label="Account Types">
+                <option *ngFor="let p of getTypesOnly()" [value]="p.id">{{ p.desc }}</option>
+              </optgroup>
+              <optgroup label="Normal Accounts (can carry children)">
+                <option *ngFor="let p of getParents()" [value]="p.id">{{ p.desc }} ({{ p.code || p.id }})</option>
+              </optgroup>
+            </select>
+          </label>
+          <label>Account No. <input disabled [(ngModel)]="edit.code" /></label>
+          <label>Description <input [(ngModel)]="edit.desc" /></label>
+          <label>Currency
+            <select [(ngModel)]="edit.currency" disabled>
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn cancel" (click)="ui.editOpen = false">Cancel</button>
+        <button class="btn primary" (click)="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+  <!-- Fixed Asset Links dialog -->
+<!-- Fixed Asset Links dialog -->
+<div class="dialog" *ngIf="ui.fixedLinksOpen">
+  <div class="dialog-panel xl">
+    <div class="dialog-title">
+      Fixed Asset Links
+      <button class="x" (click)="ui.fixedLinksOpen = false">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <table class="list">
         <thead>
           <tr>
-            <th style="width:120px">Code</th>
-            <th>Name / Description</th>
-            <th style="width:110px">Type</th>
-            <th style="width:70px">Level</th>
-            <th style="width:120px">Parent</th>
-            <th style="width:80px">Curr</th>
-            <th style="width:90px">Posting</th>
-            <th style="width:90px">Cash/Bank</th>
-            <th style="width:80px">Active</th>
+            <th style="width:140px;">Asset A/C No.</th>
+            <th>Asset A/C Description</th>
+            <th style="width:160px;">Asset Deprn. A/C No.</th>
+            <th>Asset Deprn. A/C Description</th>
+            <th style="width:60px;"></th>
           </tr>
         </thead>
-
         <tbody>
-          <tr *ngFor="let a of filtered() | slice:(page-1)*pageSize:(page-1)*pageSize+pageSize"
-              (click)="selected=a"
-              [class.is-selected]="selected===a">
-
-            <td class="mono">{{ a.code }}</td>
-            <td class="clip" [title]="a.name">{{ a.name }}</td>
-            <td>{{ a.type }}</td>
-            <td class="mono">L{{ a.level }}</td>
-            <td class="mono">{{ a.parent || '-' }}</td>
-            <td>{{ a.currency }}</td>
-            <td><span class="pill" [class.ok]="a.posting"> {{ a.posting ? 'Yes' : 'No' }} </span></td>
-            <td><span class="pill" [class.ok]="a.cashBank"> {{ a.cashBank ? 'Yes' : 'No' }} </span></td>
-            <td><span class="pill" [class.ok]="a.active"> {{ a.active ? 'Yes' : 'No' }} </span></td>
+          <tr *ngFor="let r of fixedLinks">
+            <td>{{ r.assetCode }}</td>
+            <td>{{ r.assetDesc }}</td>
+            <td>{{ r.deprCode }}</td>
+            <td>{{ r.deprDesc }}</td>
+            <td class="r">
+              <button class="mini danger" title="Delete pair"
+                      (click)="deleteFixedLink(r)">🗑</button>
+            </td>
           </tr>
-
-          <tr *ngIf="(filtered() || []).length === 0">
-            <td class="empty" colspan="9">No accounts</td>
+          <tr *ngIf="fixedLinks.length === 0">
+            <td colspan="5" style="text-align:center; padding:14px;">
+              No fixed-asset pairs yet. Click <b>Add</b> to create one.
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="panel-foot">
-      <div class="rec">Records: {{ filtered().length }}</div>
-
-      <div class="pager">
-        <button class="pg" [disabled]="page===1" (click)="page=1">&laquo;</button>
-        <button class="pg" [disabled]="page===1" (click)="page=page-1">&lsaquo;</button>
-        <span class="pg-label">Page {{ page }} / {{ pageCount() }}</span>
-        <button class="pg" [disabled]="page===pageCount()" (click)="page=page+1">&rsaquo;</button>
-        <button class="pg" [disabled]="page===pageCount()" (click)="page=pageCount()">&raquo;</button>
-      </div>
+    <div class="dialog-actions">
+      <button class="btn cancel" (click)="ui.fixedLinksOpen = false">Cancel</button>
+      <!-- mở lại popup Fixed Asset để thêm cặp mới -->
+      <button class="btn primary" (click)="openFixedAsset()">Add</button>
+      <button class="btn primary" (click)="ui.fixedLinksOpen = false">Save</button>
     </div>
   </div>
+</div>
 
-  <!-- Dialog Create / Edit -->
-  <div class="dialog" *ngIf="showDialog">
-    <div class="dialog-panel">
-      <div class="dialog-title">
-        {{ editMode ? 'Edit Account' : 'Create Account' }}
-        <button class="x" (click)="closeDialog()">✕</button>
-      </div>
 
-      <div class="dialog-body">
-        <div class="grid2">
-          <div>
-            <label class="lbl">Code</label>
-            <input class="inp mono" [(ngModel)]="form.code" [readonly]="editMode" placeholder="e.g. 1100" />
-          </div>
-
-          <div class="col-span-2 col-md-1">
-            <label class="lbl">Name / Description</label>
-            <input class="inp" [(ngModel)]="form.name" />
-          </div>
-
-          <div>
-            <label class="lbl">Type</label>
-            <select class="inp" [(ngModel)]="form.type">
-              <option>Asset</option>
-              <option>Liability</option>
-              <option>Equity</option>
-              <option>Revenue</option>
-              <option>Expense</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Level</label>
-            <select class="inp" [(ngModel)]="form.level">
-              <option [ngValue]="1">1</option>
-              <option [ngValue]="2">2</option>
-              <option [ngValue]="3">3</option>
-              <option [ngValue]="4">4</option>
-              <option [ngValue]="5">5</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Parent (for level > 1)</label>
-            <select class="inp" [(ngModel)]="form.parent">
-              <option [ngValue]="null">-- None --</option>
-              <option *ngFor="let p of parentsFor(form.level)" [ngValue]="p">{{ p }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Currency</label>
-            <select class="inp" [(ngModel)]="form.currency">
-              <option>MYR</option>
-              <option>USD</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Posting</label>
-            <select class="inp" [(ngModel)]="form.posting">
-              <option [ngValue]="true">Yes</option>
-              <option [ngValue]="false">No</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Cash/Bank</label>
-            <select class="inp" [(ngModel)]="form.cashBank">
-              <option [ngValue]="true">Yes</option>
-              <option [ngValue]="false">No</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="lbl">Active</label>
-            <select class="inp" [(ngModel)]="form.active">
-              <option [ngValue]="true">Yes</option>
-              <option [ngValue]="false">No</option>
-            </select>
-          </div>
-
-          <div class="col-span-2">
-            <label class="lbl">Remark / Note</label>
-            <input class="inp" [(ngModel)]="form.note" />
-          </div>
-        </div>
-      </div>
-
-      <div class="dialog-actions">
-        <button class="btn" (click)="closeDialog()">Cancel</button>
-        <button class="btn primary" (click)="save()">{{ editMode ? 'Save' : 'Create' }}</button>
-      </div>
-    </div>
-  </div>
+</div>

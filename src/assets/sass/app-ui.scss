@@ -485,4 +485,12 @@ label:has(> input[type="checkbox"]) input[type="checkbox"] {
   background: #fff1f2;
   color: #b91c1c;
 }
+.pager {
+  display: flex;
+  justify-content: flex-end; /* đẩy cụm phân trang sang phải */
+  padding: 8px 0;
+}
 
+.pager .nav {
+  margin-left: auto; /* phòng trường hợp có style khác ghi đè */
+}

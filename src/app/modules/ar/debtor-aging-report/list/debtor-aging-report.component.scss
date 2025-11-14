@@ -128,9 +128,6 @@
   }
 
   /* giữ màu chữ của link chứng từ */
-  .detail-row .detail tbody a {
-    color: #2563eb;
-  }
   /* === Subtable (detail) look & feel === */
   /* Khung ngoài giống bảng cha */
   .detail-row .detail {
@@ -189,11 +186,6 @@
     background: #fff3b5;
   }
 
-  /* Link chứng từ vẫn hiển thị rõ */
-  .detail-row .detail tbody a {
-    color: #2563eb;
-    text-decoration: none;
-  }
   .detail-row .detail tbody a:hover {
     text-decoration: underline;
   }
@@ -415,10 +407,7 @@
   .table th.c {
     text-align: center;
   }
-  .table .link {
-    color: #2563eb;
-    cursor: pointer;
-  }
+
   tfoot tr.sum {
     background: #f8fafc;
     font-weight: 600;
@@ -444,10 +433,6 @@
   }
   .r {
     text-align: right;
-  }
-  .blue {
-    color: #1f6feb;
-    font-weight: 600;
   }
   /* canh top hai control trong dòng Debtor */
   .debtor-line {
@@ -696,21 +681,13 @@
 .grid.detail-yellow tbody td {
   border-bottom: 1px solid #e5e7eb;      /* kẻ ngang detail */
 }
-/* ===== Total row: make numbers blue ===== */
-:host {
-  --total-blue: #2563eb; /* thay đổi nếu bạn muốn màu khác */
-}
 
 /* Bảng thường */
 :host .gridwrap table tfoot.sum-row td.r,
-:host .gridwrap table tfoot.sum-row td.r * {
-  color: var(--total-blue) !important;
-  font-weight: 600;
-}
-
 /* Bảng grouped (class .table) */
 :host .gridwrap .table tfoot.sum-row td.r,
-:host .gridwrap .table tfoot.sum-row td.r * {
-  color: var(--total-blue) !important;
-  font-weight: 600;
+.blue { color: #1f6feb; font-weight: 600; }
+.black { color: #0c0c0c; font-weight: 600; }
+.sum-row td.black strong {
+  color: #000 !important;
 }

@@ -1,12 +1,12 @@
 <div class="page">
   <!-- Title + Toolbar -->
   <div class="titlebar">
-    <h1>Creditor</h1>
+    <h1>Creditor Maintenance</h1>
     <div class="toolbar" role="toolbar" aria-label="Debtor actions">
       <input
         class="search1"
         type="text"
-        placeholder="Search Code / Company Name ..."
+        placeholder="Search code / company name ..."
         [(ngModel)]="q"
       />
       <button class="btn primary" (click)="newDebtor()">
@@ -63,10 +63,6 @@
 
   <!-- Pager -->
   <div class="pager">
-    <span
-      >Record {{ (page - 1) * pageSize + (paged.length ? 1 : 0) }} of
-      {{ filtered.length }}</span
-    >
     <div class="nav">
       <button class="pg" (click)="first()">&laquo;</button>
       <button class="pg" (click)="prev()">&lsaquo;</button>

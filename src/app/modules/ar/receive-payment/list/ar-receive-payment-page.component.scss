@@ -208,15 +208,6 @@ input.no-ph[type="date"]:valid::-webkit-datetime-edit {
   filter: grayscale(0.3) opacity(.6);
   cursor: not-allowed;
 }
-.pager {
-  display: flex;
-  justify-content: flex-end; /* đẩy cụm phân trang sang phải */
-  padding: 8px 0;
-}
-
-.pager .nav {
-  margin-left: auto; /* phòng trường hợp có style khác ghi đè */
-}
 /* ô Outstanding có giá trị > 0 -> vàng nhạt, giữ màu chữ gốc */
 /* nếu bạn đang dùng class cho dòng quá hạn, giữ nhẹ nhàng như cũ */
 .overdue-row {

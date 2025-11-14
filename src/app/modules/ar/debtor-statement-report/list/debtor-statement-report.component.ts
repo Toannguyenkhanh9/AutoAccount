@@ -206,14 +206,14 @@ private master: DebtorRow[] = [
         balance: 500,
         lines: [
           {
-            date: '2025-10-05',
-            docNo: 'DN-000001',
-            type: 'DN',
-            description: 'Debit Note',
+            date: '2025-08-10',
+            docNo: 'OR-B000003',
+            type: 'OR',
+            description: 'ACCOUNT PAYMENT',
             chequeNo: '',
             currency: 'MYR',
-            debit: 120,
-            credit: 0,
+            debit: 0,
+            credit: 500,
             runBalance: 0
           }
         ]
@@ -230,13 +230,13 @@ private master: DebtorRow[] = [
         lines: [
           {
             date: '2025-09-23',
-            docNo: 'I-000001',
-            type: 'IN',
-            description: 'Invoice',
+            docNo: 'JV-000004',
+            type: 'CON',
+            description: 'CONTRA',
             chequeNo: '',
             currency: 'MYR',
-            debit: 3549,
-            credit: 0,
+            debit: 0,
+            credit: 9,
             runBalance: 0
           }
         ]
@@ -253,14 +253,14 @@ private master: DebtorRow[] = [
         lines: [
           {
             date: '2025-08-23',
-            docNo: 'I-000005',
-            type: 'IN',
-            description: 'Invoice',
+            docNo: 'JV-00004',
+            type: 'CON',
+            description: 'CONTRA',
             chequeNo: '',
             currency: 'MYR',
-            debit: 2150,
-            credit: 0,
-            runBalance: 0
+            debit: 0,
+            credit: 891,
+            runBalance: 3549
           }
         ]
       },
@@ -276,14 +276,14 @@ private master: DebtorRow[] = [
         lines: [
           {
             date: '2025-08-23',
-            docNo: 'I-000005',
-            type: 'IN',
-            description: 'Invoice',
+            docNo: 'CN-000001',
+            type: 'CN',
+            description: 'GOODS RETURN',
             chequeNo: '',
             currency: 'MYR',
-            debit: 2150,
-            credit: 0,
-            runBalance: 0
+            debit: 0,
+            credit: 250,
+            runBalance: 5699
           }
         ]
       },
@@ -297,17 +297,6 @@ private master: DebtorRow[] = [
         credit: 0,
         balance: 5819,
         lines: [
-          {
-            date: '2025-08-23',
-            docNo: 'I-000005',
-            type: 'IN',
-            description: 'Invoice',
-            chequeNo: '',
-            currency: 'MYR',
-            debit: 2150,
-            credit: 0,
-            runBalance: 0
-          }
         ]
       },
       {
@@ -322,14 +311,14 @@ private master: DebtorRow[] = [
         lines: [
           {
             date: '2025-08-23',
-            docNo: 'I-000005',
-            type: 'IN',
+            docNo: 'PV-000003',
+            type: 'RF',
             description: 'Invoice',
             chequeNo: '',
             currency: 'MYR',
-            debit: 2150,
+            debit: 1500,
             credit: 0,
-            runBalance: 0
+            runBalance: 5819
           }
         ]
       }

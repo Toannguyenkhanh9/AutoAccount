@@ -30,7 +30,7 @@
 
             <!-- Panel xổ xuống có checkbox -->
             <div
-              class="ms-panel"
+              class="ms-panel creditor-panel"
               *ngIf="debtorDropOpen"
               (click)="$event.stopPropagation()"
             >
@@ -110,9 +110,7 @@
         </div>
 
         <div class="f">
-          <div class="lbl"></div>
           <div class="ctl">
-            <br />
             <button type="button" class="btn primary" (click)="inquiry()">
               <span class="ico refresh"></span> Inquiry
             </button>
@@ -196,12 +194,17 @@
                     <tr class="doc">
                       <td class="toggle">
                         <button
+                          *ngIf="d.lines && d.lines.length > 0"
                           class="toggle-btn"
                           (click)="toggleDoc(d)"
                           type="button"
                         >
                           {{ d.expanded ? "−" : "+" }}
                         </button>
+                        <span
+                          *ngIf="!d.lines || d.lines.length === 0"
+                          class="no-toggle"
+                        ></span>
                       </td>
                       <td>{{ d.docDate }}</td>
                       <td>{{ d.docNo }}</td>
@@ -277,14 +280,14 @@
         </tr>
       </tbody>
 
-      <tfoot class="sum-row">
+      <!-- <tfoot class="sum-row">
         <tr>
           <td colspan="6" class="r"><strong>Total</strong></td>
           <td class="r">
             <strong>{{ totals().balance | number : "1.2-2" }}</strong>
           </td>
         </tr>
-      </tfoot>
+      </tfoot> -->
     </table>
   </div>
 </div>
