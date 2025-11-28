@@ -16,4 +16,5 @@ export interface DebtorRow {
   postCode?: string;
   deliveryAddress?: string;
   deliveryPostCode?: string;
+  customerTin?: string;
 }

@@ -73,7 +73,7 @@ export class DebtorMaintenanceComponent implements OnInit {
     {
       debtorAccount: '300-N00A',
       companyName: 'Normal Debtor A',
-      type: 'LOCAL',
+      type: '123456789',
       phone: '012-3456789',
       currency: 'MYR',
       creditTerm: '30D',
@@ -88,11 +88,12 @@ export class DebtorMaintenanceComponent implements OnInit {
       postCode: '',
       deliveryAddress: '',
       deliveryPostCode: '',
+      customerTin :'A12563311'
     },
     {
       debtorAccount: '300-GABB',
       companyName: 'General Trading Berhad',
-      type: 'EXPORT',
+      type: '12354863',
       phone: '03-2222222',
       currency: 'USD',
       creditTerm: '30D',
@@ -107,6 +108,7 @@ export class DebtorMaintenanceComponent implements OnInit {
       postCode: '',
       deliveryAddress: '',
       deliveryPostCode: '',
+      customerTin :'B1234442'
     },
   ];
   filteredRows(): DebtorRow[] {
@@ -327,29 +329,27 @@ export class DebtorMaintenanceComponent implements OnInit {
       code: ['', Validators.required], // Debtor Account
       active: [true],
 
-      billAddress: [''],
-      phone: [''],
-      fax: [''],
-      postCode: [''],
+      billAddress: ['', Validators.required],
+      phone: ['', Validators.required],
+      fax: ['', Validators.required],
+      postCode: ['', Validators.required],
       deliveryAddress: [''],
       deliveryPostCode: [''],
       email: [''],
       website: [''],
       currency: [''],
-
-      statementType: ['OpenItem'],
-      agingOn: ['InvoiceDate'],
       creditTerm: [''],
-
+      actualTerm: this.fb.control<number | null>(null), // NEW
       includeContactInfo: [false],
 
       taxExemptionNo: [''],
       taxExemptionExpiry: [null], // string | null, dạng 'YYYY-MM-DDTHH:mm'
-      discountPercent: [0],
-      gstType: [''],
       priceCategory: [''],
       accountGroup: [''],
       note: [''],
+      individualId: ['', Validators.required],
+      tinNo: ['', Validators.required],
+      sstRegNo: [''],
     });
     this.contactForm = this.fb.group({
       name: [''],
@@ -538,6 +538,34 @@ export class DebtorMaintenanceComponent implements OnInit {
       return;
     }
     const v = this.debtorForm.getRawValue();
+    if (!v.code || !String(v.code).trim()) {
+      // tự phát sinh tạm một mã — hoặc gọi hàm autoGenerateCode() của bạn
+      const tmp = 'D' + Math.random().toString(36).slice(2, 8).toUpperCase();
+      this.debtorForm.patchValue({ code: tmp });
+    }
+    // gửi payload gồm tinNo, sstRegNo
+ const payload = {
+    debtorAccount: v.code,            // NEW: map Debtor Code
+    companyName: v.name,
+    registrationNo: v.registrationNo,
+    individualId: v.individualId,
+    tinNo: v.tinNo,
+    sstRegNo: v.sstRegNo,
+    currency: v.currency,
+    billAddress: v.billAddress,
+    phone: v.phone,
+    fax: v.fax,
+    postCode: v.postCode,
+    deliveryAddress: v.deliveryAddress,
+    deliveryPostCode: v.deliveryPostCode,
+    email: v.email,
+    website: v.website,
+    creditTerm: v.creditTerm,
+    actualTerm: v.actualTerm,
+    taxExemptionNo: v.taxExemptionNo,
+    taxExemptionExpiry: v.taxExemptionExpiry,
+    active: true
+  };
     if (this.formMode === 'new') {
       // this.rows = [
       //   {
@@ -797,4 +825,29 @@ export class DebtorMaintenanceComponent implements OnInit {
     return new Date(val).toISOString();
   }
   minDateTime = this.toLocalDatetimeInputValue(new Date());
+  openTinLookup() {
+    window.open('https://mytax.hasil.gov.my/carian', '_blank');
+  }
+
+  copyBillingToDelivery() {
+    const bill = this.debtorForm.get('billAddress')?.value ?? '';
+    const post = this.debtorForm.get('postCode')?.value ?? '';
+    this.debtorForm.patchValue({
+      deliveryAddress: bill,
+      deliveryPostCode: post,
+    });
+  }
+  debtorCodeList: string[] = [];
+  onCodeFocus() {
+    // sinh 300-001 đến 300-999
+    const all = Array.from(
+      { length: 999 },
+      (_, i) => `300-${(i + 1).toString().padStart(3, '0')}`
+    );
+    // tập code đang có (tùy dữ liệu của bạn, ở đây giả sử dùng r.debtorAccount)
+    const used = new Set(
+      this.rows.map((r) => (r.debtorAccount || '').trim()).filter(Boolean)
+    );
+    this.debtorCodeList = all.filter((c) => !used.has(c)).slice(0, 20); // giới hạn 50 gợi ý đầu
+  }
 }

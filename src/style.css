@@ -22,7 +22,7 @@ html, body {
 
 /* Card trắng + table + btn + input chung */
 .card { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
-.table { width:100%; border-collapse: separate; border-spacing:0; background:#fff; border:var(--border); border-radius:10px; overflow:hidden; }
+.table { width:100%; border-collapse: separate; border-spacing:0; background:#fff; border:var(--border); border-radius:2px; overflow:hidden; }
 .table th, .table td { padding:12px 14px; border-bottom:var(--border); }
 .table thead th { background:#f2f5fb; font-weight:700; color:#0f172a; }
 .table tbody tr:hover { background:#fafbfe; }

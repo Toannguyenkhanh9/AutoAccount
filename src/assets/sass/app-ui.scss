@@ -81,7 +81,7 @@ input, select, textarea { font-family: inherit; }
   background: #464d44;
   color: var(--ink-800);
   padding: 6px 12px;
-  border-radius: var(--radius-md);
+  //border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
   transition: .15s ease;
@@ -192,10 +192,13 @@ input, select, textarea { font-family: inherit; }
 /* ---------- Form grids ---------- */
 .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.grid4{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+.grid5{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+.grid6{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
 label{ display:flex; flex-direction: column; gap: 2px; font-weight:600; color: var(--ink-800); }
 label.row{ flex-direction: row; align-items:center; gap: 8px; font-weight:600; }
 input, select, textarea{
-  padding: 8px 10px; border: 1px solid #d9e4d6; border-radius: 8px; outline: none; background:#fff;
+  padding: 8px 6px; border: 1px solid #d9e4d6; border-radius: 2px; outline: none; background:#fff;
   &:focus{ border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(102,197,74,.12); }
 }
 
@@ -494,3 +497,52 @@ label:has(> input[type="checkbox"]) input[type="checkbox"] {
 .pager .nav {
   margin-left: auto; /* phòng trường hợp có style khác ghi đè */
 }
+.icon-btn {
+  --bg: #60a5fa;        /* mặc định */
+  --bg-dark: #3b82f6;
+  --shadow: rgba(0,0,0,.18);
+
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--bg), var(--bg-dark));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px var(--shadow);
+  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor; /* nét trắng */
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px var(--shadow);
+  filter: brightness(1.03);
+}
+
+.icon-btn:active {
+  transform: translateY(0);
+  filter: brightness(.98);
+}
+
+.icon-btn[disabled] {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: grayscale(.25);
+  box-shadow: none;
+}
+
+/* Màu giống ảnh mẫu (có thể đổi tuỳ brand) */
+.icon-blue  { --bg: #4FC3F7; --bg-dark: #0288D1; } /* Add */
+.icon-green { --bg: #34D399; --bg-dark: #059669; } /* Edit (pencil) */
+.icon-amber { background: #fff3d6; color: #b45309; }/* Delete (trash) */
+/* dùng khi cần nút refresh/tương tự:  */
+/* .icon-purple { --bg: #A78BFA; --bg-dark: #7C3AED; } */
+/* Giữ chỗ cố định cho cột Actions (3 nút) */

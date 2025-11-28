@@ -31,10 +31,10 @@
       <thead>
         <tr>
           <th (click)="setSort('debtorAccount')">Code</th>
-          <th (click)="setSort('companyName')">Company Name</th>
-          <th (click)="setSort('type')">Debtor Type</th>
-          <th>Phone 1</th>
-          <th>Group Company</th>
+          <th>Customer Name</th>
+          <th>Company/SSM ID</th>
+          <th>Phone</th>
+          <th>Customer's TIN</th>
           <th>Active</th>
         </tr>
       </thead>
@@ -51,7 +51,7 @@
             {{ r.phone }}
           </td>
           <td>
-            <input type="checkbox" [checked]="r.groupCompany" disabled />
+            {{ r.customerTin }}
           </td>
           <td>
             <input type="checkbox" [checked]="r.active" disabled />
@@ -204,249 +204,245 @@
       <form [formGroup]="debtorForm" class="dialog-body">
         <div class="gbox">
           <div class="gbox-title">Profile</div>
+
+          <!-- Các mục Control Account / Debtor Type / Debtor Account / Group Company / Active đã ẩn khỏi UI -->
+
           <div class="gbox-body grid3">
-            <label
-              >Control Account
-              <select formControlName="controlAccount">
-                <option *ngFor="let c of controlAccounts" [ngValue]="c.code">
-                  {{ c.code }}
-                </option>
-              </select>
-            </label>
-
+            <!-- Customer Name (required) -->
             <label>
-              Debtor Type
-                <select formControlName="type" [disabled]="formMode === 'view'">
-                  <option *ngFor="let t of debtorTypes" [ngValue]="t.code">
-                    {{ t.name }}
-                  </option>
-                </select>
+              <span class="lbl">Debtor Code <span class="req">*</span></span>
+              <input
+                formControlName="code"
+                required
+                placeholder="300-xxx"
+                list="debtorCodeOptions"
+                (focus)="onCodeFocus()"
+                [readonly]="formMode === 'view'"
+              />
+              <datalist id="debtorCodeOptions">
+                <option *ngFor="let c of debtorCodeList" [value]="c"></option>
+              </datalist>
+            </label>
+            <label>
+              <span class="lbl">Customer Name <span class="req">*</span></span>
+              <input
+                formControlName="name"
+                required
+                [readonly]="formMode === 'view'"
+              />
             </label>
 
-            <label
-              >Company Name
-              <input formControlName="name" [readonly]="formMode === 'view'" />
-            </label>
-
-            <label
-              >Registration No.
+            <!-- Company / SSM ID (required) -->
+            <label>
+              <span class="lbl">Company/SSM ID</span>
               <input
                 formControlName="registrationNo"
                 [readonly]="formMode === 'view'"
               />
             </label>
 
-            <label
-              >Debtor Account
-              <div style="display: flex; gap: 6px;width: 100%;">
-                <input   style="width: 100%;" formControlName="code" [readonly]="formMode !== 'new'" />
-                <button
-                  class="btn primary"
-                  type="button"
-                  (click)="autoGenerateCode()"
-                  [disabled]="formMode !== 'new'"
-                >
-                  ＋
-                </button>
-              </div>
+            <!-- Individual ID / Passport No (required) -->
+            <label>
+              <span class="lbl"
+                >Individual ID / Passport No <span class="req">*</span></span
+              >
+              <input
+                formControlName="individualId"
+                required
+                [readonly]="formMode === 'view'"
+              />
             </label>
-              <label
-                >Currency
-                <select formControlName="currency">
-                  <option *ngFor="let c of currencies" [ngValue]="c.code">
-                    {{ c.code }}
-                  </option>
-                </select>
-              </label>
-            <div class="checks-inline">
-              <label class="chk">
-                <input
-                  type="checkbox"
-                  formControlName="groupCompany"
-                  [disabled]="formMode === 'view'"
-                />
-                <span>Group Company</span>
-              </label>
 
-              <label class="chk">
-                <input type="checkbox" formControlName="active" />
-                <span>Active</span>
-              </label>
-            </div>
+            <!-- Customer's TIN (required) + search -->
+            <label>
+              <span class="lbl">
+                Customer's TIN <span class="req">*</span>
+                <button
+                  type="button"
+                  class="chip chip-link"
+                  (click)="openTinLookup()"
+                  title="Search TIN"
+                >
+                  Search TIN
+                </button>
+              </span>
+              <input
+                formControlName="tinNo"
+                required
+                [readonly]="formMode === 'view'"
+              />
+            </label>
+
+            <!-- Customer's SST Registration No. -->
+            <label>
+              <span class="lbl">Customer's SST Registration No.</span>
+              <input
+                formControlName="sstRegNo"
+                [readonly]="formMode === 'view'"
+              />
+            </label>
+
+            <!-- Currency giữ nguyên -->
+            <label>
+              <span class="lbl">Currency</span>
+              <select
+                formControlName="currency"
+                [disabled]="formMode === 'view'"
+              >
+                <option *ngFor="let c of currencies" [ngValue]="c.code">
+                  {{ c.code }}
+                </option>
+              </select>
+            </label>
           </div>
         </div>
+
         <!-- GENERAL + OTHERS (merged; no tabs) -->
-        <div class="form-section">
-          <div class="gbox">
-            <div class="gbox-title">Address & Contact</div>
-            <!-- General -->
-            <div class="gbox-body grid3">
-              <label class="wide"
-                >Billing Address
-                <textarea
-                  rows="1"
-                  formControlName="billAddress"
-                  [readonly]="formMode === 'view'"
-                ></textarea>
-              </label>
+        <div class="gbox">
+          <div class="gbox-title">Address & Contact</div>
+          <div class="gbox-body grid3">
+            <label class="wide">
+              <span class="lbl"
+                >Billing Address <span class="req">*</span></span
+              >
+              <textarea
+                rows="1"
+                formControlName="billAddress"
+                required
+                [readonly]="formMode === 'view'"
+              ></textarea>
+            </label>
 
-              <label
-                >Phone<input
-                  formControlName="phone"
-                  [readonly]="formMode === 'view'"
-              /></label>
-              <label
-                >Fax<input
-                  formControlName="fax"
-                  [readonly]="formMode === 'view'"
-              /></label>
-              <label
-                >Post Code<input
-                  formControlName="postCode"
-                  [readonly]="formMode === 'view'"
-              /></label>
-              <div class="addr-sep" aria-hidden="true"></div>
-              <label class="wide"
-                >Delivery Address
-                <textarea
-                  rows="1"
-                  formControlName="deliveryAddress"
-                  [readonly]="formMode === 'view'"
-                ></textarea>
-              </label>
+            <label>
+              <span class="lbl">Phone <span class="req">*</span></span>
+              <input
+                formControlName="phone"
+                required
+                [readonly]="formMode === 'view'"
+              />
+            </label>
 
-              <label
-                >Post Code<input
-                  formControlName="deliveryPostCode"
-                  [readonly]="formMode === 'view'"
-              /></label>
-              <label
-                >Email Address<input
-                  formControlName="email"
-                  [readonly]="formMode === 'view'"
-              /></label>
+            <label>
+              <span class="lbl">Fax <span class="req">*</span></span>
+              <input
+                formControlName="fax"
+                required
+                [readonly]="formMode === 'view'"
+              />
+            </label>
 
-              <label
-                >Website<input
-                  formControlName="website"
-                  [readonly]="formMode === 'view'"
-              /></label>
+            <label>
+              <span class="lbl">Post Code <span class="req">*</span></span>
+              <input
+                formControlName="postCode"
+                required
+                [readonly]="formMode === 'view'"
+              />
+            </label>
 
-            </div>
-          </div>
-          <!-- Statement / Aging / Credit -->
-          <div class="gbox">
-            <div class="gbox-title">Statement / Aging / Credit</div>
-            <div class="gbox-body grid3 three-cols">
-              <div class="col">
-                <div class="lbl">Statement Type</div>
-                <div class="radio-box">
-                  <div class="radio-grid">
-                    <label class="radio-inline"
-                      ><input
-                        type="radio"
-                        formControlName="statementType"
-                        value="OpenItem"
-                      /><span>Open Item</span></label
-                    >
-                    <label class="radio-inline"
-                      ><input
-                        type="radio"
-                        formControlName="statementType"
-                        value="BalanceForward"
-                      /><span>Balance Forward</span></label
-                    >
-                    <label class="radio-inline"
-                      ><input
-                        type="radio"
-                        formControlName="statementType"
-                        value="NoStatement"
-                      /><span>No Statement</span></label
-                    >
-                  </div>
-                </div>
-              </div>
+            <div class="addr-sep" aria-hidden="true"></div>
 
-              <div class="col">
-                <div class="lbl">Aging On</div>
-                <div class="radio-box">
-                  <div class="radio-grid">
-                    <label class="radio-inline"
-                      ><input
-                        type="radio"
-                        formControlName="agingOn"
-                        value="InvoiceDate"
-                      /><span>Invoice Date</span></label
-                    >
-                    <label class="radio-inline"
-                      ><input
-                        type="radio"
-                        formControlName="agingOn"
-                        value="DueDate"
-                      /><span>Due Date</span></label
-                    >
-                  </div>
-                </div>
-              </div>
-
-              <div class="col">
-                <label
-                  >Credit Term
-                  <select formControlName="creditTerm">
-                    <option *ngFor="let ct of creditTerms" [ngValue]="ct.code">
-                      {{ ct.name }}
-                    </option>
-                  </select>
-                </label>
+            <label class="wide">
+              <span class="lbl">
+                Delivery Address
                 <button
-                  class="btn primary"
                   type="button"
+                  class="chip"
+                  (click)="copyBillingToDelivery()"
+                  title="Copy from Billing Address"
+                >
+                  Copy
+                </button>
+              </span>
+              <textarea
+                rows="1"
+                formControlName="deliveryAddress"
+                [readonly]="formMode === 'view'"
+              ></textarea>
+            </label>
+
+            <label>
+              <span class="lbl">Post Code</span>
+              <input
+                formControlName="deliveryPostCode"
+                [readonly]="formMode === 'view'"
+              />
+            </label>
+
+            <label>
+              <span class="lbl">Email Address</span>
+              <input formControlName="email" [readonly]="formMode === 'view'" />
+            </label>
+
+            <label>
+              <span class="lbl">Website</span>
+              <input
+                formControlName="website"
+                [readonly]="formMode === 'view'"
+              />
+            </label>
+          </div>
+        </div>
+        <!-- Credit & Others (merged) -->
+        <!-- Credit & Others -->
+        <div class="gbox">
+          <div class="gbox-title">Credit & Others</div>
+
+          <div class="gbox-body grid3 three-cols">
+            <!-- Hàng Credit Term + nút Credit Control -->
+            <div class="col">
+              <label>Credit Term</label>
+              <div class="input-with-btn">
+                <select formControlName="creditTerm">
+                  <option *ngFor="let ct of creditTerms" [ngValue]="ct.code">
+                    {{ ct.name }}
+                  </option>
+                </select>
+
+                <!-- nút gọn ngay cạnh select -->
+                <button
+                  type="button"
+                  class="btn primary"
                   (click)="openCreditControl()"
+                  title="Open Credit Control"
                 >
                   Credit Control
                 </button>
               </div>
             </div>
-          </div>
-          <div class="gbox">
-            <div class="gbox-title">Other</div>
-            <div class="gbox-body">
-              <div class="grid3">
-                <label
-                  >Sales Tax Exemption No.<input
-                    formControlName="taxExemptionNo"
-                    [readonly]="formMode === 'view'"
-                /></label>
-                <label
-                  >Expired Date
-                  <input
-                    class="inp"
-                    type="date"
-                    formControlName="taxExemptionExpiry"
-                    [disabled]="formMode === 'view'"
-                  />
-                </label>
-                <label
-                  >Discount Percent
-                  <input
-                    type="number"
-                    step="0.01"
-                    formControlName="discountPercent"
-                    [readonly]="formMode === 'view'"
-                  />
-                </label>
-                <label
-                  >GST
-                  <select formControlName="gstType">
-                    <option *ngFor="let t of taxTypes" [ngValue]="t.code">
-                      {{ t.name }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-            </div>
+
+            <!-- Actual Term: chỉ khi Edit -->
+            <label *ngIf="formMode === 'edit'">
+              Actual Term
+              <input
+                type="number"
+                min="0"
+                step="1"
+                formControlName="actualTerm"
+              />
+            </label>
+
+            <!-- Sales Tax Exemption No. -->
+            <label>
+              Sales Tax Exemption No.
+              <input
+                formControlName="taxExemptionNo"
+                [readonly]="formMode === 'view'"
+              />
+            </label>
+
+            <!-- Expired Date -->
+            <label>
+              Expired Date
+              <input
+                type="date"
+                formControlName="taxExemptionExpiry"
+                [disabled]="formMode === 'view'"
+              />
+            </label>
           </div>
         </div>
+
         <div class="dialog-actions">
           <button type="button" class="btn cancel" (click)="showForm = false">
             Cancel
@@ -480,7 +476,6 @@
       </div>
 
       <div class="dialog-body">
-        <!-- HÀNG 1: 3 Ô Credit Limit / Overdue Limit / Scope -->
         <form [formGroup]="creditForm" class="cc-grid">
           <label class="cell">
             Credit Limit
@@ -511,15 +506,12 @@
           </label>
         </form>
 
-        <!-- HÀNG 2: 3 RADIO – MỖI CÁI 1 DÒNG -->
         <div class="cc-modes" [formGroup]="creditForm">
-          <!-- 1) All Disabled -->
           <label class="radio-inline">
             <input type="radio" formControlName="mode" value="DISABLED" />
             <span>All Disabled</span>
           </label>
 
-          <!-- 2) Controlled by credit term -->
           <div
             class="mode-row"
             [class.dimmed]="creditForm.value.mode !== 'BY_TERM'"
@@ -549,7 +541,6 @@
             </div>
           </div>
 
-          <!-- 3) Suspend -->
           <div
             class="mode-row"
             [class.dimmed]="creditForm.value.mode !== 'SUSPEND'"
@@ -576,6 +567,7 @@
     </div>
   </div>
 </div>
+
 <!-- Confirm delete contact -->
 <div class="dialog" *ngIf="showContactDeleteConfirm">
   <div class="dialog-panel-small" role="dialog" aria-modal="true">
@@ -599,7 +591,9 @@
     </div>
 
     <div class="dialog-actions">
-      <button class="btn cancel" (click)="closeContactDeleteConfirm()">Cancel</button>
+      <button class="btn cancel" (click)="closeContactDeleteConfirm()">
+        Cancel
+      </button>
       <button class="btn danger" (click)="confirmDeleteContact()">
         Delete
       </button>
@@ -632,6 +626,7 @@
     </div>
   </div>
 </div>
+
 <!-- ===================== BRANCH EDITOR POPUP ===================== -->
 <div class="dialog" *ngIf="showBranchEditor">
   <div class="dialog-panel-small" style="width: min(720px, 96vw)">
@@ -703,11 +698,14 @@
     </div>
 
     <div class="dialog-actions">
-      <button class="btn cancel" (click)="closeBranchDeleteConfirm()">Cancel</button>
+      <button class="btn cancel" (click)="closeBranchDeleteConfirm()">
+        Cancel
+      </button>
       <button class="btn danger" (click)="confirmDeleteBranch()">Delete</button>
     </div>
   </div>
 </div>
+
 <div class="dialog" *ngIf="showDeleteDebtorConfirm">
   <div class="dialog-panel-small" role="dialog" aria-modal="true">
     <div class="dialog-title">
@@ -729,7 +727,9 @@
     </div>
 
     <div class="dialog-actions">
-      <button class="btn cancel" (click)="closeDeleteDebtorConfirm()">Cancel</button>
+      <button class="btn cancel" (click)="closeDeleteDebtorConfirm()">
+        Cancel
+      </button>
       <button class="btn danger" (click)="deleteDebtor()">Delete</button>
     </div>
   </div>

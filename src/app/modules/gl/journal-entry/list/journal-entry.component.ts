@@ -2,29 +2,34 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-type YesNo = 'Yes' | 'No';
-
-interface Account {
-  code: string;
-  name: string;
-}
-interface JournalLine {
-  accountCode: string;
-  accountName: string;
+type JournalLine = {
+  accNo: string;
+  accName: string;
+  desc: string;
+  ref2: string;
+  dr: number;
+  cr: number;
+};
+type ColumnKey = 'type' | 'docNo' | 'docDate' | 'description' | 'netTotal' | 'cancelled';
+interface ColumnConf { key: ColumnKey; name: string; checked: boolean; }
+type Voucher = {
   description: string;
-  debit: number;
-  credit: number;
-}
-interface JournalEntry {
+  docNo: string;
+  docDate: string;
+  secondNo: string;
+  journalType: string;
+  postDetailToGL: boolean;
+  lines: JournalLine[];
+};
+
+type ListRow = {
   id: string;
   docNo: string;
-  docDate: string;         // yyyy-MM-dd
-  journalType: string;     // e.g. GEN / ADJ / REV
-  reference?: string;
-  remark?: string;
-  posted: YesNo;
-  lines: JournalLine[];
-}
+  docDate: string;
+  description: string;
+  netTotal: number;
+  cancelled: boolean;
+};
 
 @Component({
   selector: 'app-journal-entry',
@@ -34,179 +39,229 @@ interface JournalEntry {
   styleUrls: ['./journal-entry.component.scss'],
 })
 export class JournalEntryComponent {
-  q = '';
+  // ================== LIST ==================
+  rows: ListRow[] = [
+    {
+      id: 'JV-202511-0001',
+      docNo: 'JV-202511-0001',
+      docDate: '2025-11-05',
+      description: 'Posted from A/R and A/P Contra',
+      netTotal: 8800,
+      cancelled: false,
+    },
+    {
+      id: 'JV-202511-0002',
+      docNo: 'JV-202511-0002',
+      docDate: '2025-11-09',
+      description: 'Tax',
+      netTotal: 1000,
+      cancelled: false,
+    },
+    {
+      id: 'JV-202511-0003',
+      docNo: 'JV-202511-0003',
+      docDate: '2025-11-10',
+      description: 'DISPOSAL OF MOTOR VEHICLES',
+      netTotal: 70700,
+      cancelled: false,
+    },
+    {
+      id: 'JV-202511-0004',
+      docNo: 'JV-202511-0004',
+      docDate: '2025-11-12',
+      description: 'DEPRECIATION 09/2009',
+      netTotal: 900,
+      cancelled: false,
+    },
+  ];
 
-  // Journal types demo
+  selected: ListRow | null = null;
+
+  filtered() {
+    return this.rows; // chỗ này có thể thêm filter/search nếu cần
+  }
+  totalNet() {
+    return this.filtered().reduce((s, r) => s + (r.netTotal || 0), 0);
+  }
+  trackById(_: number, r: ListRow) {
+    return r.id;
+  }
+  pick(r: ListRow) {
+    this.selected = r;
+  }
+  isPicked(r: ListRow) {
+    return this.selected?.id === r.id;
+  }
+ columnsDrawerOpen = false;
+  columns: ColumnConf[] = [
+    { key: 'type',        name: 'Type',        checked: true },
+    { key: 'docNo',       name: 'No.',         checked: true },
+    { key: 'docDate',     name: 'Date',        checked: true },
+    { key: 'description', name: 'Description', checked: true },
+    { key: 'netTotal',    name: 'Net Total',   checked: true },
+  ];
+
+  get col(): Record<ColumnKey, boolean> {
+    const m = {} as Record<ColumnKey, boolean>;
+    this.columns.forEach(c => (m[c.key] = c.checked));
+    return m;
+  }
+  get viewAll(): boolean { return this.columns.every(c => c.checked); }
+  set viewAll(v: boolean) { this.columns.forEach(c => (c.checked = v)); }
+
+  visibleColsCount() { return this.columns.filter(c => c.checked).length; }
+  openCols() { this.columnsDrawerOpen = true; }
+  closeCols() { this.columnsDrawerOpen = false; }
+  // ================== EDITOR (FULL PAGE) ==================
+  voucherOpen = false;
+  editingId: string | null = null;
+
+  v: Voucher = this.makeEmptyVoucher();
+
   journalTypes = [
     { code: 'GEN', name: 'General Journal' },
-    { code: 'ADJ', name: 'Adjustment' },
-    { code: 'REV', name: 'Reversal' },
+    { code: 'ADJ', name: 'Adjusting Journal' },
   ];
 
-  // Chart of accounts demo
-  accounts: Account[] = [
-    { code: '1000-000', name: 'Cash on Hand' },
-    { code: '1010-000', name: 'Cash at Bank - Main' },
-    { code: '1100-000', name: 'Accounts Receivable' },
-    { code: '1200-000', name: 'Inventory' },
-    { code: '2000-000', name: 'Accounts Payable' },
-    { code: '4000-000', name: 'Sales' },
-    { code: '5000-000', name: 'Cost of Goods Sold' },
-    { code: '6000-000', name: 'Operating Expenses' },
+  accounts = [
+    { code: '903-0000', name: 'DEPRECIATION OF FIXED ASSETS' },
+    { code: '200-5000', name: 'ACCUM. DEPRN. - FURNITURES & FITTINGS' },
+    { code: '200-3005', name: 'ACCUM. DEPRN. - OFFICE EQUIPMENT' },
+    { code: '200-1005', name: 'ACCUM. DEPRN. MOTOR VEHICLES' },
   ];
 
-  // Data mẫu
-  rows: JournalEntry[] = [
-    {
-      id: 'JV-20240801-0001',
-      docNo: 'JV-202408-0001',
-      docDate: '2024-08-01',
-      journalType: 'GEN',
-      reference: 'Open balance adj.',
-      remark: '',
-      posted: 'Yes',
-      lines: [
-        { accountCode: '1100-000', accountName: 'Accounts Receivable', description: 'Opening AR', debit: 5000, credit: 0 },
-        { accountCode: '4000-000', accountName: 'Sales',               description: 'Opening revenue', debit: 0, credit: 5000 },
-      ],
-    },
-    {
-      id: 'JV-20240803-0002',
-      docNo: 'JV-202408-0002',
-      docDate: '2024-08-03',
-      journalType: 'ADJ',
-      reference: 'Accrual expenses',
-      remark: '',
-      posted: 'No',
-      lines: [
-        { accountCode: '6000-000', accountName: 'Operating Expenses', description: 'Accrual', debit: 1200, credit: 0 },
-        { accountCode: '2000-000', accountName: 'Accounts Payable',   description: 'Accrual', debit: 0, credit: 1200 },
-      ],
-    },
-  ];
-
-  // Selection
-  selected: JournalEntry | null = null;
-
-  // Modal state
-  showModal = false;
-  isEdit = false;
-
-  // Form model
-  form: JournalEntry = this.empty();
-
-  private todayISO() {
-    const t = new Date();
-    const d = new Date(t.getTime() - t.getTimezoneOffset() * 60000);
-    return d.toISOString().slice(0, 10);
+  private today() {
+    return new Date().toISOString().slice(0, 10);
   }
-
-  empty(): JournalEntry {
+  private makeEmptyVoucher(): Voucher {
     return {
-      id: '',
+      description: '',
       docNo: '',
-      docDate: this.todayISO(),
+      docDate: this.today(),
+      secondNo: '',
       journalType: 'GEN',
-      posted: 'No',
-      reference: '',
-      remark: '',
+      postDetailToGL: true,
       lines: [
-        { accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
-        { accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
+        { accNo: '', accName: '', desc: '', ref2: '', dr: 0, cr: 0 },
+        { accNo: '', accName: '', desc: '', ref2: '', dr: 0, cr: 0 },
       ],
     };
   }
 
-  // List helpers
-  filtered(): JournalEntry[] {
-    const s = this.q.trim().toLowerCase();
-    if (!s) return this.rows;
-    return this.rows.filter(r => {
-      const hay = (r.docNo + ' ' + r.docDate + ' ' + r.journalType + ' ' + (r.reference || '') + ' ' + (r.remark || '')).toLowerCase();
-      return hay.includes(s);
-    });
+  // --- Buttons in header ---
+  openNew() {
+    // -> gọi từ nút "+ New" trên header (đã gắn trong HTML)
+    this.editingId = null;
+    this.v = this.makeEmptyVoucher();
+    this.voucherOpen = true;
   }
 
-  sumDebits(e: JournalEntry) { return e.lines.reduce((t, l) => t + (Number(l.debit) || 0), 0); }
-  sumCredits(e: JournalEntry) { return e.lines.reduce((t, l) => t + (Number(l.credit) || 0), 0); }
-  diff(e: JournalEntry) { return +(this.sumDebits(e) - this.sumCredits(e)).toFixed(2); }
-
-  // Toolbar
-  onNew() {
-    this.isEdit = false;
-    this.form = this.empty();
-    this.open();
+  backToList() {
+    this.voucherOpen = false;
+    this.editingId = null;
   }
-  onEdit() {
-    if (!this.selected) return;
-    this.isEdit = true;
-    this.form = JSON.parse(JSON.stringify(this.selected));
-    this.open();
+  cancelEdit() {
+    this.backToList();
   }
-  onDelete() {
-    if (!this.selected) return;
-    this.rows = this.rows.filter(r => r !== this.selected);
-    this.selected = null;
-  }
-  onRefresh() { /* no-op demo */ }
-  onPrint() { window.print(); }
 
-  // Row select
-  pick(r: JournalEntry) { this.selected = r; }
-  isPicked(r: JournalEntry) { return this.selected === r; }
-  trackById(_: number, r: JournalEntry) { return r.id; }
-
-  // Modal
-  open() { this.showModal = true; }
-  close() { this.showModal = false; }
-
+  // --- Lines ---
   addLine() {
-    this.form.lines.push({ accountCode: '', accountName: '', description: '', debit: 0, credit: 0 });
+    this.v.lines.push({ accNo: '', accName: '', desc: '', ref2: '', dr: 0, cr: 0 });
   }
-  removeLine(i: number) {
-    this.form.lines.splice(i, 1);
+  confirmLineOpen = false;
+  removeIndex: number | null = null;
+  askRemoveLine(i: number) {
+    this.removeIndex = i;
+    this.confirmLineOpen = true;
   }
-  onAccountChange(i: number) {
-    const code = this.form.lines[i].accountCode;
-    const a = this.accounts.find(x => x.code === code);
-    this.form.lines[i].accountName = a?.name || '';
-  }
-  normalizeLine(i: number) {
-    const l = this.form.lines[i];
-    l.debit = Number(l.debit) || 0;
-    l.credit = Number(l.credit) || 0;
-    // chỉ cho nhập 1 bên
-    if (l.debit > 0) l.credit = 0;
-    if (l.credit > 0) l.debit = 0;
-  }
-
-  formDebits() { return this.form.lines.reduce((t,l)=> t + (Number(l.debit)||0), 0); }
-  formCredits() { return this.form.lines.reduce((t,l)=> t + (Number(l.credit)||0), 0); }
-  formBalanced() { return Math.abs(this.formDebits() - this.formCredits()) < 0.005; } // tolerance 0.01
-
-  private lpad(s: string, width: number, padChar = '0') {
-    if (s.length >= width) return s;
-    return new Array(width - s.length + 1).join(padChar) + s;
-  }
-
-  save() {
-    // validations
-    if (!this.form.docNo.trim()) { alert('Document No is required'); return; }
-    if (!this.form.docDate) { alert('Document Date is required'); return; }
-    const hasAmount = this.form.lines.some(l => (l.debit||0) > 0 || (l.credit||0) > 0);
-    if (!hasAmount) { alert('At least one line must have Debit or Credit.'); return; }
-    if (!this.formBalanced()) { alert('Entry is not balanced. Debits must equal Credits.'); return; }
-
-    if (this.isEdit) {
-      const idx = this.rows.findIndex(r => r.id === this.form.id);
-      if (idx >= 0) this.rows[idx] = JSON.parse(JSON.stringify(this.form));
-    } else {
-      const yyyymmdd = this.form.docDate.split('-').join('');
-      const rnd = this.lpad((Math.random() * 10000 | 0).toString(), 4, '0');
-      const id = `JV-${yyyymmdd}-${rnd}`;
-      const row: JournalEntry = { ...this.form, id };
-      this.rows = [...this.rows, row];
+  doRemoveLine() {
+    if (this.removeIndex != null) {
+      this.v.lines.splice(this.removeIndex, 1);
     }
-    this.close();
+    this.removeIndex = null;
+    this.confirmLineOpen = false;
+  }
+
+  fillAccName(d: JournalLine) {
+    const found = this.accounts.find((a) => a.code === d.accNo);
+    if (found && !d.accName) d.accName = found.name;
+    if (!d.desc && this.v.description) d.desc = this.v.description;
+  }
+
+  onAmountEdit(d: JournalLine, side: 'dr' | 'cr') {
+    const value = Number(d[side] || 0);
+    if (side === 'dr' && value !== 0) d.cr = 0;
+    if (side === 'cr' && value !== 0) d.dr = 0;
+  }
+
+  totalDR() {
+    return this.v.lines.reduce((s, l) => s + (Number(l.dr) || 0), 0);
+  }
+  totalCR() {
+    return this.v.lines.reduce((s, l) => s + (Number(l.cr) || 0), 0);
+  }
+  diff() {
+    return this.totalDR() - this.totalCR();
+  }
+  balanced() {
+    return Math.abs(this.diff()) <= 0.005;
+  }
+
+  // --- Validate + Save ---
+  errors: { mismatch?: string; anyBothSides?: string; noAmount?: string } = {};
+
+  private resetErrors() {
+    this.errors = {};
+  }
+  private validate(): boolean {
+    this.resetErrors();
+
+    // Ít nhất một dòng có số tiền
+    const hasAmt = this.v.lines.some((l) => (l.dr || 0) !== 0 || (l.cr || 0) !== 0);
+    if (!hasAmt) this.errors.noAmount = 'Enter at least one DR/CR amount.';
+
+    // Không để 1 dòng vừa DR vừa CR khác 0
+    const anyBoth = this.v.lines.some((l) => (l.dr || 0) !== 0 && (l.cr || 0) !== 0);
+    if (anyBoth) this.errors.anyBothSides = 'A line cannot have both DR and CR amounts.';
+
+    // Tổng phải cân
+    if (!this.balanced()) this.errors.mismatch = 'Total DR and CR must be equal.';
+
+    return !this.errors.mismatch && !this.errors.anyBothSides && !this.errors.noAmount;
+  }
+
+  canSave() {
+    // Cho phép nút Save sáng khi đã nhập mô tả hoặc có số dòng + cân
+    return this.v.description?.trim()?.length > 0 && this.validate();
+  }
+
+  saveVoucher() {
+    if (!this.validate()) return;
+
+    const net = this.totalDR(); // = totalCR
+    const row: ListRow = {
+      id: this.editingId ?? crypto.randomUUID?.() ?? String(Date.now()),
+      docNo: this.v.docNo || this.nextRunningNo(),
+      docDate: this.v.docDate,
+      description: this.v.description || '(No description)',
+      netTotal: net,
+      cancelled: false,
+    };
+
+    if (this.editingId) {
+      const i = this.rows.findIndex((x) => x.id === this.editingId);
+      if (i >= 0) this.rows[i] = row;
+    } else {
+      this.rows.unshift(row);
+    }
+
+    this.backToList();
+  }
+
+  private nextRunningNo(): string {
+    // demo: JV-YYYYMM-xxxx
+    const y = new Date().toISOString().slice(0, 7).replace('-', '');
+    const seq = (this.rows.length + 1).toString().padStart(4, '0');
+    return `JV-${y}-${seq}`;
   }
 }
