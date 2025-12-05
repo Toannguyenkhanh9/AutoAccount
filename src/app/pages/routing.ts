@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-
 const Routing: Routes = [
   {
     path: 'dashboard',

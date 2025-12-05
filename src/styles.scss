@@ -6,3 +6,144 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+/* ---------- Theme Tokens ---------- */
+:root {
+  --brand: #1776d1;
+  --brand-600: #0f62b6;
+  --brand-50: #e8f2fc;
+
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --ink: #1f2937;
+  --ink-2: #4b5563;
+  --muted: #9ca3af;
+  --border: #e5e7eb;
+  --ok: #16a34a;
+  --warn: #ea580c;
+  --bad: #e11d48;
+  --shadow: 0 2px 10px rgba(15, 23, 42, .08);
+}
+
+* { box-sizing: border-box }
+html, body { height: 100% }
+body {
+  margin: 0;
+  font: 14px/1.4 ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ---------- Utilities ---------- */
+.container {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+.page {
+  padding-block: 18px 28px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.toolbar {
+  background: var(--brand);
+  color: #fff;
+  height: 56px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+.toolbar .brand {
+  display: flex; align-items: center; gap: 12px; padding-left: 14px;
+  font-weight: 700; letter-spacing: .2px;
+}
+.toolbar .brand .logo {
+  width: 28px; height: 28px;
+  border-radius: 6px; background:#fff2; display:inline-grid; place-items:center;
+  font-size: 16px; font-weight: 800;
+}
+.toolbar .actions {
+  display: flex; align-items: center; gap: 8px; padding-right: 12px;
+}
+.icon-btn {
+  height: 32px; min-width: 32px; padding: 0 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff1; color: #fff; border: 0; border-radius: 8px;
+  cursor: pointer;
+}
+.icon-btn:hover { background:#fff2 }
+
+/* ---------- Page header row (title/filters/actions) ---------- */
+.page-head {
+  margin: 16px 0 12px;
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+}
+.page-head .title {
+  font-size: 20px; font-weight: 700; letter-spacing: .2px;
+}
+.actions-row { display: flex; align-items: center; gap: 8px }
+
+/* ---------- Buttons ---------- */
+.btn {
+  height: 36px; padding: 0 14px; border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); background: #fff; color: var(--ink);
+  cursor: pointer;
+}
+.btn:disabled { opacity: .6; cursor: not-allowed }
+.btn.primary {
+  background: var(--brand); color: #fff; border-color: var(--brand);
+}
+.btn.primary:hover { background: var(--brand-600); border-color: var(--brand-600) }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-2) }
+.btn.ghost:hover { background: #0000000a }
+
+/* ---------- Back pill ---------- */
+.back-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+  background: #fff; color: var(--ink-2); cursor: pointer;
+}
+.back-pill:hover { background: var(--brand-50); color: var(--brand-600); border-color: var(--brand-50) }
+
+/* ---------- Table ---------- */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden }
+.table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+.table thead th {
+  background: #fafafa; text-align: left; font-weight: 600; color: var(--ink-2);
+  padding: 12px; border-bottom: 1px solid var(--border);
+}
+.table tbody td { padding: 12px; border-bottom: 1px solid var(--border) }
+.table tfoot td { padding: 12px; font-weight: 700; background:#fafafa }
+
+/* ---------- Right Drawer (select columns…) ---------- */
+.drawer {
+  position: fixed; inset: 0; display: none;
+}
+.drawer.open { display: block }
+.drawer .scrim {
+  position: absolute; inset:0; background: rgba(0,0,0,.25);
+}
+.drawer .panel {
+  position: absolute; right: 0; top: 0; height: 100%; width: 360px;
+  background: #fff; border-left: 1px solid var(--border); box-shadow: var(--shadow);
+  display: grid; grid-template-rows: auto 1fr auto;
+}
+.drawer .panel .hd {
+  padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 700;
+}
+.drawer .panel .bd { padding: 14px 16px; overflow: auto }
+.drawer .panel .ft { padding: 12px 16px; border-top: 1px solid var(--border); display:flex; justify-content:flex-end; gap:8px }
